@@ -35,7 +35,7 @@ function useFirestoreCollection<T extends { id: string }>(collectionName: string
   };
 
   const atualizar = async (id: string, data: Partial<T>) => {
-    await updateDoc(doc(db, collectionName, id), data as any);
+    await updateDoc(doc(db, collectionName, id), data as Record<string, unknown>);
   };
 
   return { items, loading, adicionar, remover, atualizar };
