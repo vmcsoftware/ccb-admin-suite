@@ -19,7 +19,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/ccb-admin-suite">
         <Layout>
           <Routes>
             <Route path="/" element={<Index />} />
