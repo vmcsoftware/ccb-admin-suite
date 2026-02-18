@@ -104,6 +104,14 @@ export default function Agenda() {
 
   const getMembroNome = (id: string) => membros.find((m) => m.id === id)?.nome || '';
 
+  const getCongregacaoNome = (id: string) => {
+    const congregacao = congregacoes.find((c) => c.id === id);
+    if (!congregacao) return '';
+    return congregacao.nome.toLowerCase().includes('central') 
+      ? `${congregacao.nome} (${congregacao.cidade})`
+      : congregacao.nome;
+  };
+
   const abrirComTipoReunioes = (tipoReuniao: string) => {
     resetForm();
     setSubtipoReunioes(tipoReuniao);
@@ -253,7 +261,7 @@ export default function Agenda() {
                         <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -281,7 +289,7 @@ export default function Agenda() {
                         <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -302,7 +310,7 @@ export default function Agenda() {
                         <Input value={form.encarregadoRegional} onChange={(e) => setForm({ ...form, encarregadoRegional: e.target.value })} placeholder="Digite o nome do encarregado" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={encarregadoOutraLocalidade} onCheckedChange={setEncarregadoOutraLocalidade} />
+                        <Checkbox checked={encarregadoOutraLocalidade} onCheckedChange={(checked) => setEncarregadoOutraLocalidade(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -330,7 +338,7 @@ export default function Agenda() {
                         <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -351,7 +359,7 @@ export default function Agenda() {
                         <Input value={form.diaconoResponsavel} onChange={(e) => setForm({ ...form, diaconoResponsavel: e.target.value })} placeholder="Digite o nome" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={diaconoResponsavelOutra} onCheckedChange={setDiaconoResponsavelOutra} />
+                        <Checkbox checked={diaconoResponsavelOutra} onCheckedChange={(checked) => setDiaconoResponsavelOutra(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -372,7 +380,7 @@ export default function Agenda() {
                         <Input value={form.diaconoAuxiliar} onChange={(e) => setForm({ ...form, diaconoAuxiliar: e.target.value })} placeholder="Digite o nome" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={diaconoAuxiliarOutra} onCheckedChange={setDiaconoAuxiliarOutra} />
+                        <Checkbox checked={diaconoAuxiliarOutra} onCheckedChange={(checked) => setDiaconoAuxiliarOutra(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -393,7 +401,7 @@ export default function Agenda() {
                         <Input value={form.responsavelContagem} onChange={(e) => setForm({ ...form, responsavelContagem: e.target.value })} placeholder="Digite o nome" />
                       )}
                       <label className="flex items-center gap-2 cursor-pointer text-sm">
-                        <Checkbox checked={responsavelContagemOutra} onCheckedChange={setResponsavelContagemOutra} />
+                        <Checkbox checked={responsavelContagemOutra} onCheckedChange={(checked) => setResponsavelContagemOutra(checked === true)} />
                         <span>De outra localidade</span>
                       </label>
                     </div>
@@ -516,6 +524,9 @@ export default function Agenda() {
                     )}
                     {ev.horario && (
                       <p className="text-xs text-muted-foreground mt-1">🕐 {ev.horario}</p>
+                    )}
+                    {ev.congregacaoId && (
+                      <p className="text-xs text-muted-foreground mt-1">📍 {getCongregacaoNome(ev.congregacaoId)}</p>
                     )}
                     {ev.descricao && (
                       <p className="text-xs text-muted-foreground mt-1">{ev.descricao}</p>
