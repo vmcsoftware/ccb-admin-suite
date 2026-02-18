@@ -31,12 +31,21 @@ export default function Listas() {
   const { eventos } = useEventos();
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const [tela, setTela] = useState<'inicial' | 'editor' | 'gerenciar'>('inicial');
+  const [tela, setTela] = useState<'inicial' | 'formulario' | 'editor' | 'gerenciar'>('inicial');
   const [listas, setListas] = useState<Lista[]>([]);
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [listaEditando, setListaEditando] = useState<Lista | null>(null);
   const [categoriasFiltro, setCategoriasFiltro] = useState('todas');
   const [novaCategoriaNome, setNovaCategoriaNome] = useState('');
+
+  // Estado do formulário de nova lista
+  const [formLista, setFormLista] = useState({
+    nome: 'Lista de Batismos e Diversos',
+    mes: new Date().getMonth(),
+    ano: new Date().getFullYear(),
+    dataInicio: new Date().toISOString().slice(0, 10),
+    dataFim: new Date().toISOString().slice(0, 10),
+  });
 
   // Estado do editor
   const [aba, setAba] = useState<'dados' | 'filtros' | 'preview'>('dados');
@@ -69,18 +78,30 @@ export default function Listas() {
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
   const novaLista = () => {
-    const agora = new Date();
+    setFormLista({
+      nome: 'Lista de Batismos e Diversos',
+      mes: new Date().getMonth(),
+      ano: new Date().getFullYear(),
+      dataInicio: new Date().toISOString().slice(0, 10),
+      dataFim: new Date().toISOString().slice(0, 10),
+    });
+    setTela('formulario');
+  };
+
+  const salvarFormularioLista = () => {
     const novaLista: Lista = {
       id: Date.now().toString(),
-      nome: 'Lista de Batismos e Diversos',
-      mes: agora.getMonth(),
-      ano: agora.getFullYear(),
+      nome: formLista.nome,
+      mes: formLista.mes,
+      ano: formLista.ano,
       ativa: true,
       data: new Date().toISOString().slice(0, 10),
       categorias: [],
     };
     setListaEditando(novaLista);
-    setTela('editor');
+    setTela('gerenciar');
+    setCategoriasFiltro('todas');
+    setNovaCategoriaNome('');
     resetFormulario();
   };
 
@@ -248,6 +269,113 @@ export default function Listas() {
   };
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
+
+  // TELA: FORMULÁRIO NOVA LISTA
+  if (tela === 'formulario') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        {/* Overlay */}
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setTela('inicial')}
+        />
+        
+        {/* Modal */}
+        <div className="relative glass-card rounded-2xl p-8 w-full max-w-md shadow-2xl border border-border/50">
+          {/* Header */}
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold font-display text-foreground">Nova Lista</h2>
+            <p className="text-sm text-muted-foreground mt-1">Crie uma nova lista de eventos</p>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-5">
+            {/* Nome da Lista */}
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Nome da Lista</Label>
+              <Input
+                value={formLista.nome}
+                onChange={(e) => setFormLista({ ...formLista, nome: e.target.value })}
+                placeholder="Lista de Batismos e Diversos"
+                className="w-full"
+              />
+            </div>
+
+            {/* Mês e Ano - Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Mês</Label>
+                <select
+                  value={formLista.mes}
+                  onChange={(e) => setFormLista({ ...formLista, mes: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {meses.map((m, i) => (
+                    <option key={i} value={i}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Ano</Label>
+                <select
+                  value={formLista.ano}
+                  onChange={(e) => setFormLista({ ...formLista, ano: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Data Início e Fim - Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Data Início</Label>
+                <Input
+                  type="date"
+                  value={formLista.dataInicio}
+                  onChange={(e) => setFormLista({ ...formLista, dataInicio: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Data Fim</Label>
+                <Input
+                  type="date"
+                  value={formLista.dataFim}
+                  onChange={(e) => setFormLista({ ...formLista, dataFim: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 mt-8 pt-6 border-t border-border">
+            <Button
+              onClick={() => setTela('inicial')}
+              variant="outline"
+              className="flex-1"
+            >
+              Voltar
+            </Button>
+            <Button
+              onClick={salvarFormularioLista}
+              className="flex-1 gap-2"
+            >
+              Salvar
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // TELA: GERENCIAR CATEGORIAS
   if (tela === 'gerenciar' && listaEditando) {
