@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Download, Calendar as CalIcon } from 'lucide-react';
+import { FileText, Download, Settings } from 'lucide-react';
 import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,13 +14,19 @@ export default function Listas() {
   const { reforcos } = useReforcos();
   const { eventos } = useEventos();
 
+  const [aba, setAba] = useState<'dados' | 'filtros' | 'preview'>('dados');
   const [selectedCongs, setSelectedCongs] = useState<string[]>([]);
   const [selectedMembros, setSelectedMembros] = useState<string[]>([]);
   const [incluirReforcos, setIncluirReforcos] = useState(false);
   const [incluirEventos, setIncluirEventos] = useState(false);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
+  const [filtroTiposReunioes, setFiltroTiposReunioes] = useState<string[]>([]);
+  const [filtroTiposEventos, setFiltroTiposEventos] = useState<string[]>([]);
+
+  const tiposReunioesDisponiveis = ['Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação'];
+  const tiposEventosDisponiveis = ['Culto', 'RJM', 'Ensaio', 'Jovens', 'Outro'];
+  const tiposReforcoDisponiveis = ['Culto', 'RJM'];
 
   const toggleCong = (id: string) => {
     setSelectedCongs((s) => (s.includes(id) ? s.filter((i) => i !== id) : [...s, id]));
@@ -30,10 +36,24 @@ export default function Listas() {
     setSelectedMembros((s) => (s.includes(id) ? s.filter((i) => i !== id) : [...s, id]));
   };
 
+  const toggleFiltroTipoReuniao = (tipo: string) => {
+    setFiltroTiposReunioes((s) => (s.includes(tipo) ? s.filter((i) => i !== tipo) : [...s, tipo]));
+  };
+
+  const toggleFiltroTipoEvento = (tipo: string) => {
+    setFiltroTiposEventos((s) => (s.includes(tipo) ? s.filter((i) => i !== tipo) : [...s, tipo]));
+  };
+
   const getEventosFiltrados = () => {
     let filtered = [...eventos];
     if (dataInicio) filtered = filtered.filter((e) => e.data >= dataInicio);
     if (dataFim) filtered = filtered.filter((e) => e.data <= dataFim);
+    if (filtroTiposEventos.length > 0) {
+      filtered = filtered.filter((e) => filtroTiposEventos.includes(e.tipo));
+    }
+    if (filtroTiposReunioes.length > 0) {
+      filtered = filtered.filter((e) => e.subtipoReuniao && filtroTiposReunioes.includes(e.subtipoReuniao));
+    }
     return filtered.sort((a, b) => a.data.localeCompare(b.data));
   };
 
@@ -41,6 +61,9 @@ export default function Listas() {
     let filtered = [...reforcos];
     if (dataInicio) filtered = filtered.filter((r) => r.data >= dataInicio);
     if (dataFim) filtered = filtered.filter((r) => r.data <= dataFim);
+    if (tiposReforcoDisponiveis.length > 0 && filtroTiposEventos.length > 0) {
+      filtered = filtered.filter((r) => filtroTiposEventos.includes(r.tipo));
+    }
     return filtered.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
   };
 
@@ -246,112 +269,243 @@ export default function Listas() {
       <div>
         <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Selecione os dados para gerar uma lista exportável
+          Organize e exporte dados de congregações, eventos e reforços
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Congregações */}
-        <div className="glass-card rounded-xl p-5 space-y-3">
-          <h3 className="font-semibold font-display text-foreground">Congregações</h3>
-          {congregacoes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma congregação cadastrada.</p>
-          ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {[...congregacoes]
-                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                .map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={selectedCongs.includes(c.id)} onCheckedChange={() => toggleCong(c.id)} />
-                  <span className="text-foreground">{c.nome}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Ministério */}
-        <div className="glass-card rounded-xl p-5 space-y-3">
-          <h3 className="font-semibold font-display text-foreground">Ministério</h3>
-          {membros.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum membro cadastrado.</p>
-          ) : (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {[...membros]
-                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                .map((m) => (
-                <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={selectedMembros.includes(m.id)} onCheckedChange={() => toggleMembro(m.id)} />
-                  <span className="text-foreground">{m.nome}</span>
-                  <span className="text-muted-foreground text-xs">({m.ministerio})</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          onClick={() => setAba('dados')}
+          className={`px-4 py-2 font-medium text-sm transition-all ${
+            aba === 'dados'
+              ? 'border-b-2 border-primary text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Dados
+        </button>
+        <button
+          onClick={() => setAba('filtros')}
+          className={`px-4 py-2 font-medium text-sm transition-all ${
+            aba === 'filtros'
+              ? 'border-b-2 border-primary text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Filtros
+        </button>
+        <button
+          onClick={() => setAba('preview')}
+          className={`px-4 py-2 font-medium text-sm transition-all ${
+            aba === 'preview'
+              ? 'border-b-2 border-primary text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Preview
+        </button>
       </div>
 
-      {/* Reforços */}
-      <div className="glass-card rounded-xl p-5">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox checked={incluirReforcos} onCheckedChange={(v) => setIncluirReforcos(!!v)} />
-          <span className="font-semibold font-display text-foreground">Incluir Reforços Agendados</span>
-          <span className="text-sm text-muted-foreground">({reforcos.length})</span>
-        </label>
-      </div>
-
-      {/* Eventos */}
-      <div className="glass-card rounded-xl p-5 space-y-3">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox checked={incluirEventos} onCheckedChange={(v) => setIncluirEventos(!!v)} />
-          <span className="font-semibold font-display text-foreground">Incluir Eventos Agendados</span>
-          <span className="text-sm text-muted-foreground">({eventos.length})</span>
-        </label>
-        
-        {incluirEventos && (
-          <div className="grid grid-cols-2 gap-3 ml-6">
-            <div>
-              <Label className="text-xs">Data Início (opcional)</Label>
-              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Data Fim (opcional)</Label>
-              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-            </div>
+      {/* ABA: DADOS */}
+      {aba === 'dados' && (
+        <div className="space-y-6">
+          {/* Congregações */}
+          <div className="glass-card rounded-xl p-5 space-y-3">
+            <h3 className="font-semibold font-display text-foreground">Congregações</h3>
+            {congregacoes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma congregação cadastrada.</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {[...congregacoes]
+                  .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                  .map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={selectedCongs.includes(c.id)} onCheckedChange={() => toggleCong(c.id)} />
+                    <span className="text-foreground">{c.nome}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Filtro de Período para Reforços */}
-      {incluirReforcos && (
-        <div className="glass-card rounded-xl p-5 space-y-3">
-          <h3 className="font-semibold font-display text-foreground text-sm">Filtrar Reforços por Período</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Data Início (opcional)</Label>
-              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Data Fim (opcional)</Label>
-              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-            </div>
+          {/* Ministério */}
+          <div className="glass-card rounded-xl p-5 space-y-3">
+            <h3 className="font-semibold font-display text-foreground">Ministério</h3>
+            {membros.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum membro cadastrado.</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {[...membros]
+                  .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                  .map((m) => (
+                  <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={selectedMembros.includes(m.id)} onCheckedChange={() => toggleMembro(m.id)} />
+                    <span className="text-foreground">{m.nome}</span>
+                    <span className="text-muted-foreground text-xs">({m.ministerio})</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Reforços */}
+          <div className="glass-card rounded-xl p-5">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={incluirReforcos} onCheckedChange={(v) => setIncluirReforcos(!!v)} />
+              <span className="font-semibold font-display text-foreground">Incluir Reforços Agendados</span>
+              <span className="text-sm text-muted-foreground">({reforcos.length})</span>
+            </label>
+          </div>
+
+          {/* Eventos */}
+          <div className="glass-card rounded-xl p-5">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={incluirEventos} onCheckedChange={(v) => setIncluirEventos(!!v)} />
+              <span className="font-semibold font-display text-foreground">Incluir Eventos Agendados</span>
+              <span className="text-sm text-muted-foreground">({eventos.length})</span>
+            </label>
           </div>
         </div>
       )}
 
-      {/* Preview e Botões */}
-      <div className="flex gap-2">
-        <Button onClick={() => setShowPreview(!showPreview)} variant="outline" className="gap-2">
-          <FileText className="h-4 w-4" /> {showPreview ? 'Ocultar' : 'Visualizar'} Preview
-        </Button>
-        <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
-          <Download className="h-4 w-4" /> Gerar PDF e Baixar
-        </Button>
-      </div>
+      {/* ABA: FILTROS */}
+      {aba === 'filtros' && (
+        <div className="space-y-6">
+          {/* Período */}
+          <div className="glass-card rounded-xl p-5 space-y-4">
+            <h3 className="font-semibold font-display text-foreground">Período</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm mb-2 block">Data Início (opcional)</Label>
+                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-sm mb-2 block">Data Fim (opcional)</Label>
+                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+              </div>
+            </div>
+            {(dataInicio || dataFim) && (
+              <p className="text-xs text-muted-foreground pt-2">
+                Filtro ativo: {dataInicio ? new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—'} a{' '}
+                {dataFim ? new Date(dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+              </p>
+            )}
+          </div>
 
-      {/* Preview Section */}
-      {showPreview && (
-        <div className="glass-card rounded-xl p-8 space-y-6 bg-white">
+          {/* Tipos de Reuniões */}
+          {incluirEventos && (
+            <div className="glass-card rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold font-display text-foreground">Tipos de Reuniões</h3>
+                {filtroTiposReunioes.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">{filtroTiposReunioes.length} selecionados</Badge>
+                )}
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {tiposReunioesDisponiveis.map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={filtroTiposReunioes.includes(tipo)}
+                      onCheckedChange={() => toggleFiltroTipoReuniao(tipo)}
+                    />
+                    <span className="text-foreground">{tipo}</span>
+                  </label>
+                ))}
+              </div>
+              {filtroTiposReunioes.length > 0 && (
+                <Button
+                  onClick={() => setFiltroTiposReunioes([])}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                >
+                  Limpar Filtro de Reuniões
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Tipos de Eventos */}
+          {incluirEventos && (
+            <div className="glass-card rounded-xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold font-display text-foreground">Tipos de Eventos</h3>
+                {filtroTiposEventos.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">{filtroTiposEventos.length} selecionados</Badge>
+                )}
+              </div>
+              <div className="space-y-2">
+                {tiposEventosDisponiveis.map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={filtroTiposEventos.includes(tipo)}
+                      onCheckedChange={() => toggleFiltroTipoEvento(tipo)}
+                    />
+                    <span className="text-foreground">{tipo}</span>
+                  </label>
+                ))}
+              </div>
+              {filtroTiposEventos.length > 0 && (
+                <Button
+                  onClick={() => setFiltroTiposEventos([])}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                >
+                  Limpar Filtro de Eventos
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Tipos de Reforços */}
+          {incluirReforcos && (
+            <div className="glass-card rounded-xl p-5 space-y-3">
+              <h3 className="font-semibold font-display text-foreground">Tipos de Reforços</h3>
+              <div className="space-y-2">
+                {tiposReforcoDisponiveis.map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox defaultChecked disabled />
+                    <span className="text-foreground">{tipo}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Todos os tipos de reforço estão inclusos</p>
+            </div>
+          )}
+
+          {/* Botão para limpar todos os filtros */}
+          {(filtroTiposReunioes.length > 0 || filtroTiposEventos.length > 0 || dataInicio || dataFim) && (
+            <Button
+              onClick={() => {
+                setFiltroTiposReunioes([]);
+                setFiltroTiposEventos([]);
+                setDataInicio('');
+                setDataFim('');
+              }}
+              variant="outline"
+              className="w-full gap-2"
+            >
+              <Settings className="h-4 w-4" /> Limpar Todos os Filtros
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* ABA: PREVIEW */}
+      {/* ABA: PREVIEW */}
+      {aba === 'preview' && (
+        <div className="space-y-6">
+          {/* Botões de Ação */}
+          <div className="flex gap-2">
+            <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
+              <Download className="h-4 w-4" /> Gerar PDF e Baixar
+            </Button>
+          </div>
+
+          {/* Preview Section */}
+          <div className="glass-card rounded-xl p-8 space-y-6 bg-white">
           {/* Cabeçalho do Documento */}
           <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
             <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
@@ -487,6 +641,7 @@ export default function Listas() {
             {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
               <p className="text-sm text-muted-foreground text-center">Nenhum evento ou reforço no período selecionado.</p>
             )}
+          </div>
           </div>
         </div>
       )}
