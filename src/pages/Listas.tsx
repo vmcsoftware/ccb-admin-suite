@@ -351,50 +351,143 @@ export default function Listas() {
 
       {/* Preview Section */}
       {showPreview && (
-        <div className="glass-card rounded-xl p-5 space-y-4">
-          <h3 className="font-semibold font-display text-foreground">Preview da Lista</h3>
-          
-          {/* Eventos */}
-          {incluirEventos && getEventosFiltrados().length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-foreground">📅 Eventos Agendados</h4>
-              <div className="space-y-2">
-                {getEventosFiltrados().map((e) => (
-                  <div key={e.id} className="text-sm bg-muted/50 p-2 rounded">
-                    <p className="font-medium">{e.subtipoReuniao || e.tipo}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')} {e.horario && `às ${e.horario}`} • {getCongregacaoNome(e.congregacaoId) || '—'}
-                    </p>
-                    {e.anciaoAtende && <p className="text-xs">Ancião: {e.anciaoAtende}</p>}
-                  </div>
-                ))}
+        <div className="glass-card rounded-xl p-8 space-y-6 bg-white">
+          {/* Cabeçalho do Documento */}
+          <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
+            <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
+            <div className="text-sm font-semibold">NO</div>
+            <div className="text-sm font-semibold">BRASIL</div>
+            <div className="text-lg font-bold mt-3">LISTA DE BATISMOS E DIVERSOS</div>
+            <div className="text-sm font-semibold mt-2">ADMINISTRAÇÃO ITUIUTABA</div>
+            {(dataInicio || dataFim) && (
+              <div className="text-xs font-semibold mt-1">
+                {dataInicio ? new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : 'Início'} A {dataFim ? new Date(dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : 'Fim'}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Reforços */}
-          {incluirReforcos && getReforcosFiltrados().length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-foreground">🔄 Reforços Agendados</h4>
+          {/* Tabelas por tipo de evento */}
+          <div className="space-y-6">
+            {/* BATISMO */}
+            {incluirEventos && getEventosFiltrados().filter(e => e.subtipoReuniao === 'Batismo').length > 0 && (
               <div className="space-y-2">
-                {getReforcosFiltrados().map((r) => (
-                  <div key={r.id} className="text-sm bg-muted/50 p-2 rounded">
-                    <p className="font-medium">{r.tipo}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} • {getCongregacaoNome(r.congregacaoId) || '—'}
-                    </p>
-                    {r.membros.length > 0 && (
-                      <p className="text-xs">Escalados: {r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ')}</p>
-                    )}
-                  </div>
-                ))}
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">BATISMO</h4>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 border border-gray-400">
+                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">ANCIÃO</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getEventosFiltrados()
+                      .filter(e => e.subtipoReuniao === 'Batismo')
+                      .map((e) => (
+                        <tr key={e.id} className="border border-gray-400">
+                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          )}
+            )}
 
-          {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum evento ou reforço no período selecionado.</p>
-          )}
+            {/* SANTA-CEIA */}
+            {incluirEventos && getEventosFiltrados().filter(e => e.subtipoReuniao === 'Santa-Ceia').length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">SANTA-CEIA</h4>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 border border-gray-400">
+                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">ANCIÃO</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getEventosFiltrados()
+                      .filter(e => e.subtipoReuniao === 'Santa-Ceia')
+                      .map((e) => (
+                        <tr key={e.id} className="border border-gray-400">
+                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* REFORÇO - CULTO OFICIAL */}
+            {incluirReforcos && getReforcosFiltrados().filter(r => r.tipo === 'Culto').length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">REFORÇO - CULTO OFICIAL</h4>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 border border-gray-400">
+                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getReforcosFiltrados()
+                      .filter(r => r.tipo === 'Culto')
+                      .map((r) => (
+                        <tr key={r.id} className="border border-gray-400">
+                          <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* REFORÇO - RJM */}
+            {incluirReforcos && getReforcosFiltrados().filter(r => r.tipo === 'RJM').length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">REFORÇO - RJM</h4>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 border border-gray-400">
+                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getReforcosFiltrados()
+                      .filter(r => r.tipo === 'RJM')
+                      .map((r) => (
+                        <tr key={r.id} className="border border-gray-400">
+                          <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
+              <p className="text-sm text-muted-foreground text-center">Nenhum evento ou reforço no período selecionado.</p>
+            )}
+          </div>
         </div>
       )}
     </div>
