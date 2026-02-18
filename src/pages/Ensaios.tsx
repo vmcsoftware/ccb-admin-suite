@@ -555,15 +555,12 @@ export default function Ensaios() {
                         <Badge variant="outline">{ensaio.congregacaoNome}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        💍 Dias: {Array.isArray(ensaio.diasSemana) ? ensaio.diasSemana.join(', ') : 'N/A'}
+                        💍 Dias: {ensaio.diaSemana || 'N/A'}
                       </p>
                       {ensaio.horario && (
                         <p className="text-sm text-muted-foreground mt-1">
                           ⏰ Horário: {formatarHora24(ensaio.horario)}
                         </p>
-                      )}
-                      {ensaio.descricao && (
-                        <p className="text-sm mt-2 text-foreground">{ensaio.descricao}</p>
                       )}
                     </div>
                   </div>
