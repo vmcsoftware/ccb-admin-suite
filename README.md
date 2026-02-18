@@ -32,9 +32,28 @@ cd ccb-admin-suite
 npm install
 
 # 3. Configure as variáveis de ambiente
-# Crie um arquivo .env.local com suas credenciais Firebase (opcional)
+# Crie um arquivo .env.local copiando o template
 cp .env.example .env.local
+
+# 4. Preencha .env.local com suas credenciais Firebase
+# (Solicite ao lead do projeto ou use suas próprias credenciais)
 ```
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env.local` na raiz do projeto (use `.env.example` como template):
+
+```env
+VITE_FIREBASE_API_KEY=sua_chave_api_aqui
+VITE_FIREBASE_AUTH_DOMAIN=seu_projeto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=seu_projeto_id
+VITE_FIREBASE_STORAGE_BUCKET=seu_projeto.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id
+VITE_FIREBASE_APP_ID=seu_app_id
+VITE_FIREBASE_MEASUREMENT_ID=sua_measurement_id
+```
+
+⚠️ **Importante:** O arquivo `.env.local` é ignorado pelo Git (`.gitignore`), garantindo que suas credenciais nunca sejam expostas publicamente. Para mais detalhes sobre segurança, veja [SECURITY.md](./SECURITY.md).
 
 ### Desenvolvimento
 
@@ -219,7 +238,18 @@ Por favor, reporte bugs em [GitHub Issues](https://github.com/vmcsoftware/ccb-ad
 - Screenshots (se aplicável)
 - Ambiente (OS, navegador, versão do Node)
 
-## 📄 Licença
+## � Segurança
+
+**⚠️ IMPORTANTE:** As credenciais do Firebase são carregadas via variáveis de ambiente (`.env.local`) que **nunca** devem ser commitadas ao repositório.
+
+- Nunca faça commit de `.env.local`
+- Sempre use `.env.example` como template
+- Regenere chaves expostas imediatamente (veja [SECURITY.md](./SECURITY.md))
+- Para produção, use variáveis de ambiente seguras (GitHub Secrets, Vercel Env, etc.)
+
+Para maiores detalhes sobre práticas de segurança, veja [SECURITY.md](./SECURITY.md).
+
+## �📄 Licença
 
 Este projeto está sob a licença MIT. Veja [LICENSE](LICENSE) para detalhes.
 
