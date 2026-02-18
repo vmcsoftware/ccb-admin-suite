@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Calendar as CalIcon, Eye } from 'lucide-react';
-import { useEventos, useCongregacoes } from '@/hooks/useData';
+import { useEventos, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Evento } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Jovens', 'Outro'];
 
@@ -49,10 +50,19 @@ const tipoCor: Record<Evento['tipo'], string> = {
 export default function Agenda() {
   const { eventos, adicionar, remover } = useEventos();
   const { congregacoes } = useCongregacoes();
+  const { membros } = useMembros();
   const [open, setOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
   const [subtipoReunioes, setSubtipoReunioes] = useState('');
+  
+  // Estados para controlar "de outra localidade"
+  const [anciaoOutraLocalidade, setAnciaoOutraLocalidade] = useState(false);
+  const [encarregadoOutraLocalidade, setEncarregadoOutraLocalidade] = useState(false);
+  const [diaconoResponsavelOutra, setDiaconoResponsavelOutra] = useState(false);
+  const [diaconoAuxiliarOutra, setDiaconoAuxiliarOutra] = useState(false);
+  const [responsavelContagemOutra, setResponsavelContagemOutra] = useState(false);
+  
   const [form, setForm] = useState({
     titulo: '',
     data: '',
@@ -69,34 +79,7 @@ export default function Agenda() {
     responsavelContagem: '',
   });
 
-  const abrirComTipoReunioes = (tipoReuniao: string) => {
-    setForm({
-      titulo: '',
-      data: '',
-      horario: '',
-      tipo: 'Reunião',
-      congregacaoId: '',
-      descricao: '',
-      anciaoAtende: '',
-      anciaoLocalidade: '',
-      encarregadoRegional: '',
-      encarregadoLocalidade: '',
-      diaconoResponsavel: '',
-      diaconoAuxiliar: '',
-      responsavelContagem: '',
-    });
-    setSubtipoReunioes(tipoReuniao);
-    setOpen(true);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    let titulo = form.titulo;
-    if (form.tipo === 'Reunião' && subtipoReunioes && !titulo) {
-      titulo = subtipoReunioes;
-    }
-    if (!titulo || !form.data) return;
-    adicionar({ ...form, titulo, subtipoReuniao: subtipoReunioes });
+  const resetForm = () => {
     setForm({
       titulo: '',
       data: '',
@@ -112,6 +95,43 @@ export default function Agenda() {
       diaconoAuxiliar: '',
       responsavelContagem: '',
     });
+    setAnciaoOutraLocalidade(false);
+    setEncarregadoOutraLocalidade(false);
+    setDiaconoResponsavelOutra(false);
+    setDiaconoAuxiliarOutra(false);
+    setResponsavelContagemOutra(false);
+  };
+
+  const getMembroNome = (id: string) => membros.find((m) => m.id === id)?.nome || '';
+
+  const abrirComTipoReunioes = (tipoReuniao: string) => {
+    resetForm();
+    setSubtipoReunioes(tipoReuniao);
+    setOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    let titulo = form.titulo;
+    if (form.tipo === 'Reunião' && subtipoReunioes && !titulo) {
+      titulo = subtipoReunioes;
+    }
+    if (!titulo || !form.data) return;
+    
+    // Substituir IDs de membros por nomes
+    const formToSave = {
+      ...form,
+      titulo,
+      subtipoReuniao: subtipoReunioes,
+      anciaoAtende: form.anciaoAtende ? getMembroNome(form.anciaoAtende) || form.anciaoAtende : '',
+      encarregadoRegional: form.encarregadoRegional ? getMembroNome(form.encarregadoRegional) || form.encarregadoRegional : '',
+      diaconoResponsavel: form.diaconoResponsavel ? getMembroNome(form.diaconoResponsavel) || form.diaconoResponsavel : '',
+      diaconoAuxiliar: form.diaconoAuxiliar ? getMembroNome(form.diaconoAuxiliar) || form.diaconoAuxiliar : '',
+      responsavelContagem: form.responsavelContagem ? getMembroNome(form.responsavelContagem) || form.responsavelContagem : '',
+    };
+    
+    adicionar(formToSave);
+    resetForm();
     setSubtipoReunioes('');
     setOpen(false);
   };
@@ -215,14 +235,27 @@ export default function Agenda() {
                   <div className="border-t border-border pt-4">
                     <h3 className="font-medium text-sm mb-3">Dados do Batismo</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Ancião</Label>
-                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
-                    </div>
-                    <div>
-                      <Label>Localidade do Ancião</Label>
-                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <>
+                          <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                            <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                            <SelectContent>
+                              {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <span>De outra localidade</span>
+                      </label>
                     </div>
                   </div>
                 </>
@@ -232,24 +265,46 @@ export default function Agenda() {
                   <div className="border-t border-border pt-4">
                     <h3 className="font-medium text-sm mb-3">Dados do Ensaio Regional</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Ancião</Label>
-                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
-                    </div>
-                    <div>
-                      <Label>Localidade do Ancião</Label>
-                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <span>De outra localidade</span>
+                      </label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Encarregado Regional</Label>
-                      <Input value={form.encarregadoRegional} onChange={(e) => setForm({ ...form, encarregadoRegional: e.target.value })} placeholder="Nome" />
-                    </div>
-                    <div>
-                      <Label>Localidade do Encarregado</Label>
-                      <Input value={form.encarregadoLocalidade} onChange={(e) => setForm({ ...form, encarregadoLocalidade: e.target.value })} placeholder="Local" />
+                  <div>
+                    <Label>Encarregado Regional</Label>
+                    <div className="space-y-2">
+                      {!encarregadoOutraLocalidade ? (
+                        <Select value={form.encarregadoRegional} onValueChange={(v) => setForm({ ...form, encarregadoRegional: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um encarregado" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.encarregadoRegional} onChange={(e) => setForm({ ...form, encarregadoRegional: e.target.value })} placeholder="Digite o nome do encarregado" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={encarregadoOutraLocalidade} onCheckedChange={setEncarregadoOutraLocalidade} />
+                        <span>De outra localidade</span>
+                      </label>
                     </div>
                   </div>
                 </>
@@ -259,27 +314,89 @@ export default function Agenda() {
                   <div className="border-t border-border pt-4">
                     <h3 className="font-medium text-sm mb-3">Dados da Santa Ceia</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Ancião</Label>
-                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
-                    </div>
-                    <div>
-                      <Label>Localidade do Ancião</Label>
-                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={setAnciaoOutraLocalidade} />
+                        <span>De outra localidade</span>
+                      </label>
                     </div>
                   </div>
                   <div>
                     <Label>Diácono Responsável</Label>
-                    <Input value={form.diaconoResponsavel} onChange={(e) => setForm({ ...form, diaconoResponsavel: e.target.value })} placeholder="Nome" />
+                    <div className="space-y-2">
+                      {!diaconoResponsavelOutra ? (
+                        <Select value={form.diaconoResponsavel} onValueChange={(v) => setForm({ ...form, diaconoResponsavel: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um diácono" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.diaconoResponsavel} onChange={(e) => setForm({ ...form, diaconoResponsavel: e.target.value })} placeholder="Digite o nome" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={diaconoResponsavelOutra} onCheckedChange={setDiaconoResponsavelOutra} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
                   </div>
                   <div>
                     <Label>Diácono Auxiliar</Label>
-                    <Input value={form.diaconoAuxiliar} onChange={(e) => setForm({ ...form, diaconoAuxiliar: e.target.value })} placeholder="Nome" />
+                    <div className="space-y-2">
+                      {!diaconoAuxiliarOutra ? (
+                        <Select value={form.diaconoAuxiliar} onValueChange={(v) => setForm({ ...form, diaconoAuxiliar: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um diácono" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.diaconoAuxiliar} onChange={(e) => setForm({ ...form, diaconoAuxiliar: e.target.value })} placeholder="Digite o nome" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={diaconoAuxiliarOutra} onCheckedChange={setDiaconoAuxiliarOutra} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
                   </div>
                   <div>
                     <Label>Responsável pela Contagem</Label>
-                    <Input value={form.responsavelContagem} onChange={(e) => setForm({ ...form, responsavelContagem: e.target.value })} placeholder="Nome" />
+                    <div className="space-y-2">
+                      {!responsavelContagemOutra ? (
+                        <Select value={form.responsavelContagem} onValueChange={(v) => setForm({ ...form, responsavelContagem: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.responsavelContagem} onChange={(e) => setForm({ ...form, responsavelContagem: e.target.value })} placeholder="Digite o nome" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={responsavelContagemOutra} onCheckedChange={setResponsavelContagemOutra} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
                   </div>
                 </>
               )}
