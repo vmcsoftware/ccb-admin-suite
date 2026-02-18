@@ -122,6 +122,7 @@ export default function Congregacoes() {
   const [novoDiaEnsaio, setNovoDiaEnsaio] = useState<Omit<DiaEnsaio, 'id'>>(emptyDiaEnsaio);
   const [datasEnsaioVisualizado, setDatasEnsaioVisualizado] = useState<Date[]>([]);
   const [viewingCongregacao, setViewingCongregacao] = useState<Congregacao | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,8 +250,8 @@ export default function Congregacoes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex-1">
           <h1 className="text-2xl font-bold font-display text-foreground">Congregações</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gerencie as congregações da Administração
@@ -802,53 +803,79 @@ export default function Congregacoes() {
         </Dialog>
       </div>
 
+      {/* Campo de Busca */}
+      <div>
+        <Input
+          placeholder="🔍 Buscar congregação..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+
       {/* Lista de Congregações */}
       {congregacoes.length === 0 ? (
         <div className="glass-card rounded-xl p-12 text-center">
           <MapPin className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <p className="mt-4 text-muted-foreground">Nenhuma congregação cadastrada.</p>
         </div>
+      ) : [...congregacoes].filter((c) => c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || c.cidade.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+        <div className="glass-card rounded-xl p-12 text-center">
+          <MapPin className="mx-auto h-10 w-10 text-muted-foreground/40" />
+          <p className="mt-4 text-muted-foreground">Nenhuma congregação encontrada com "{searchTerm}"</p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...congregacoes]
+            .filter((c) => c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || c.cidade.toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-            .map((c) => (
-            <div key={c.id} className="glass-card stat-card-hover rounded-xl p-5 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground font-display text-lg">{c.nome}</h3>
+            .map((c) => {
+              const isCentral = c.nome.toLowerCase().includes('central');
+              return (
+                <div key={c.id} className="glass-card stat-card-hover rounded-xl p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground font-display text-lg">{c.nome}</h3>
+                        {isCentral && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                            {c.cidade}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setViewingCongregacao(c)}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1"
+                        title="Visualizar"
+                      >
+                        👁️
+                      </button>
+                      <button
+                        onClick={() => handleEdit(c)}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => remover(c.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {c.endereco ? `${c.endereco}, ${c.bairro}` : c.bairro || 'Sem endereço'}
+                    </p>
+                    <div className="text-xs text-muted-foreground/60">{c.cidade}</div>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setViewingCongregacao(c)}
-                    className="text-muted-foreground hover:text-primary transition-colors p-1"
-                    title="Visualizar"
-                  >
-                    👁️
-                  </button>
-                  <button
-                    onClick={() => handleEdit(c)}
-                    className="text-muted-foreground hover:text-primary transition-colors p-1"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => remover(c.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {c.endereco ? `${c.endereco}, ${c.bairro}` : c.bairro || 'Sem endereço'}
-                </p>
-                <div className="text-xs text-muted-foreground/60">{c.cidade}</div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
         </div>
       )}
 
