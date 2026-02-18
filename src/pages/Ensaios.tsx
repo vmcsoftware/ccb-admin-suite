@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
-import { useEnsaios } from '@/hooks/useData';
-import { Ensaio, NivelEnsaio, RegrasEnsaio } from '@/types';
+import { useEnsaios, useCongregacoes } from '@/hooks/useData';
+import { Ensaio, NivelEnsaio, RegrasEnsaio, DiaEnsaio } from '@/types';
 import { formatarHora24 } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,9 +51,11 @@ const emptyForm: Omit<Ensaio, 'id'> = {
 
 export default function Ensaios() {
   const { ensaios, adicionar, remover, atualizar } = useEnsaios();
+  const { congregacoes } = useCongregacoes();
   const [form, setForm] = useState(emptyForm);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'general' | 'congregacoes'>('general');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +107,27 @@ export default function Ensaios() {
     Local: 'bg-blue-100 text-blue-800',
     Regional: 'bg-purple-100 text-purple-800',
   }[nivel]);
+
+  // Agregar ensaios de todas as congregações
+  const ensaiosCongregacoes: Array<DiaEnsaio & { congregacaoNome: string; congregacaoId: string }> = [];
+  congregacoes.forEach((cong) => {
+    if (cong.diasEnsaios && Array.isArray(cong.diasEnsaios)) {
+      cong.diasEnsaios.forEach((ensaio) => {
+        ensaiosCongregacoes.push({
+          ...ensaio,
+          congregacaoNome: cong.nome,
+          congregacaoId: cong.id,
+        });
+      });
+    }
+  });
+
+  // Ordenar ensaios das congregações alfabeticamente por congregação e depois por tipo
+  const ensaiosCongregacoesOrdenados = [...ensaiosCongregacoes].sort((a, b) => {
+    const congCmp = a.congregacaoNome.localeCompare(b.congregacaoNome, 'pt-BR');
+    if (congCmp !== 0) return congCmp;
+    return a.tipo.localeCompare(b.tipo, 'pt-BR');
+  });
 
   return (
     <div className="space-y-6">
@@ -396,14 +419,41 @@ export default function Ensaios() {
         </Dialog>
       </div>
 
-      {/* Lista de Ensaios */}
-      <div className="grid gap-4">
-        {ensaios.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Nenhum ensaio cadastrado</p>
-          </div>
-        ) : (
-          ensaios.map((ensaio) => (
+      {/* Abas de visualização */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          onClick={() => setViewMode('general')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            viewMode === 'general'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Ensaios Gerais
+        </button>
+        <button
+          onClick={() => setViewMode('congregacoes')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            viewMode === 'congregacoes'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Ensaios de Congregações
+        </button>
+      </div>
+
+      {/* Lista de Ensaios Gerais */}
+      {viewMode === 'general' && (
+        <div className="grid gap-4">
+          {ensaios.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhum ensaio cadastrado</p>
+            </div>
+          ) : (
+            [...ensaios]
+              .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'))
+              .map((ensaio) => (
             <Card key={ensaio.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -484,7 +534,45 @@ export default function Ensaios() {
             </Card>
           ))
         )}
-      </div>
+        </div>
+      )}
+
+      {/* Lista de Ensaios de Congregações */}
+      {viewMode === 'congregacoes' && (
+        <div className="grid gap-4">
+          {ensaiosCongregacoesOrdenados.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhum ensaio de congregação cadastrado</p>
+            </div>
+          ) : (
+            ensaiosCongregacoesOrdenados.map((ensaio, idx) => (
+              <Card key={`${ensaio.congregacaoId}-${idx}`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-lg">{ensaio.tipo}</CardTitle>
+                        <Badge variant="outline">{ensaio.congregacaoNome}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        💍 Dias: {Array.isArray(ensaio.diasSemana) ? ensaio.diasSemana.join(', ') : 'N/A'}
+                      </p>
+                      {ensaio.horario && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          ⏰ Horário: {formatarHora24(ensaio.horario)}
+                        </p>
+                      )}
+                      {ensaio.descricao && (
+                        <p className="text-sm mt-2 text-foreground">{ensaio.descricao}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

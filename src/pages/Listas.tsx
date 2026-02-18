@@ -24,8 +24,12 @@ export default function Listas() {
   };
 
   const gerarPDF = () => {
-    const congsData = congregacoes.filter((c) => selectedCongs.includes(c.id));
-    const membrosData = membros.filter((m) => selectedMembros.includes(m.id));
+    const congsData = congregacoes
+      .filter((c) => selectedCongs.includes(c.id))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const membrosData = membros
+      .filter((m) => selectedMembros.includes(m.id))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -126,22 +130,33 @@ export default function Listas() {
       y += 8;
       pdf.setTextColor(0, 0, 0);
 
-      reforcos.forEach((r) => {
-        checkPage(16);
-        const cong = congregacoes.find((c) => c.id === r.congregacaoId);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${cong?.nome || '—'}`, 18, y);
-        y += 5;
-        if (r.membros.length > 0) {
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          const nomes = r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—');
-          pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
+      [...reforcos]
+        .sort((a, b) => {
+          const dateCmp = new Date(a.data).getTime() - new Date(b.data).getTime();
+          if (dateCmp !== 0) return dateCmp;
+          const congA = congregacoes.find((c) => c.id === a.congregacaoId)?.nome || '';
+          const congB = congregacoes.find((c) => c.id === b.congregacaoId)?.nome || '';
+          return congA.localeCompare(congB, 'pt-BR');
+        })
+        .forEach((r) => {
+          checkPage(16);
+          const cong = congregacoes.find((c) => c.id === r.congregacaoId);
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${cong?.nome || '—'}`, 18, y);
           y += 5;
-        }
-        y += 3;
-      });
+          if (r.membros.length > 0) {
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'normal');
+            const nomes = [...r.membros]
+              .map((id) => ({ id, nome: membros.find((m) => m.id === id)?.nome || '—' }))
+              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+              .map((m) => m.nome);
+            pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
+            y += 5;
+          }
+          y += 3;
+        });
     }
 
     // Footer
@@ -176,7 +191,9 @@ export default function Listas() {
             <p className="text-sm text-muted-foreground">Nenhuma congregação cadastrada.</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {congregacoes.map((c) => (
+              {[...congregacoes]
+                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                .map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={selectedCongs.includes(c.id)} onCheckedChange={() => toggleCong(c.id)} />
                   <span className="text-foreground">{c.nome}</span>
@@ -193,7 +210,9 @@ export default function Listas() {
             <p className="text-sm text-muted-foreground">Nenhum membro cadastrado.</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {membros.map((m) => (
+              {[...membros]
+                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                .map((m) => (
                 <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={selectedMembros.includes(m.id)} onCheckedChange={() => toggleMembro(m.id)} />
                   <span className="text-foreground">{m.nome}</span>

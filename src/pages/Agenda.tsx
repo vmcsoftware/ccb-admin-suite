@@ -88,7 +88,9 @@ export default function Agenda() {
                   <Select value={form.congregacaoId} onValueChange={(v) => setForm({ ...form, congregacaoId: v })}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      {congregacoes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      {[...congregacoes]
+                        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                        .map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

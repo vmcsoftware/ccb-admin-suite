@@ -16,16 +16,60 @@ import { Congregacao, Membro, Evento, Reforco, Ensaio } from '@/types';
  * Normaliza dados de Congregacao do formato antigo para o novo
  */
 function normalizeCongregacao(data: Record<string, unknown>): Congregacao {
+  const normalizeDiaCulto = (dia: any) => {
+    if (typeof dia === 'object' && dia !== null) {
+      return {
+        diasemana: typeof dia.diasemana === 'string' ? dia.diasemana : '',
+        horario: typeof dia.horario === 'string' ? dia.horario : '19:00',
+        tipo: typeof dia.tipo === 'string' ? dia.tipo : 'Culto Oficial',
+      };
+    }
+    return { diasemana: '', horario: '19:00', tipo: 'Culto Oficial' };
+  };
+
+  const normalizeMinisterio = (ministerio: any) => {
+    if (!Array.isArray(ministerio)) return [];
+    return ministerio.map((m: any) => ({
+      id: typeof m.id === 'string' ? m.id : `temp_${Date.now()}`,
+      nome: typeof m.nome === 'string' ? m.nome : '',
+      funcao: typeof m.funcao === 'string' ? m.funcao : 'Ancião',
+      ehLocalidade: typeof m.ehLocalidade === 'boolean' ? m.ehLocalidade : false,
+      ehResponsavel: typeof m.ehResponsavel === 'boolean' ? m.ehResponsavel : false,
+    }));
+  };
+
+  const normalizeDiaEnsaio = (ensaio: any) => {
+    if (typeof ensaio === 'object' && ensaio !== null) {
+      return {
+        id: typeof ensaio.id === 'string' ? ensaio.id : `ensaio_${Date.now()}`,
+        semanaDoMes: typeof ensaio.semanaDoMes === 'number' ? ensaio.semanaDoMes : 1,
+        diaSemana: typeof ensaio.diaSemana === 'string' ? ensaio.diaSemana : 'Segunda',
+        horario: typeof ensaio.horario === 'string' ? ensaio.horario : '19:00',
+        tipo: typeof ensaio.tipo === 'string' ? ensaio.tipo : 'Local',
+        meses: Array.isArray(ensaio.meses) ? ensaio.meses : [],
+      };
+    }
+    return { id: `ensaio_${Date.now()}`, semanaDoMes: 1, diaSemana: 'Segunda', horario: '19:00', tipo: 'Local', meses: [] };
+  };
+
   return {
     id: (data.id as string) || '',
     nome: (data.nome as string) || '',
     endereco: (data.endereco as string) || '',
     cidade: (data.cidade as string) || '',
     bairro: (data.bairro as string) || '',
-    // Se for array, mantém; se for string vazia, converte para array vazio
-    diasCultos: Array.isArray(data.diasCultos) ? data.diasCultos : [],
-    diasRJM: Array.isArray(data.diasRJM) ? data.diasRJM : [],
-    diasEnsaios: typeof data.diasEnsaios === 'string' ? data.diasEnsaios : '',
+    numeroRelatorio: (data.numeroRelatorio as string) || '',
+    // Se for array, normaliza cada item; se for string vazia, converte para array vazio
+    diasCultos: Array.isArray(data.diasCultos) 
+      ? data.diasCultos.map(normalizeDiaCulto) 
+      : [],
+    diasRJM: Array.isArray(data.diasRJM) 
+      ? data.diasRJM.map(normalizeDiaCulto) 
+      : [],
+    diasEnsaios: Array.isArray(data.diasEnsaios)
+      ? data.diasEnsaios.map(normalizeDiaEnsaio)
+      : [],
+    ministerio: normalizeMinisterio(data.ministerio),
   };
 }
 

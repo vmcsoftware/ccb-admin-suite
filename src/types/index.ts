@@ -7,19 +7,45 @@ export interface DiaCulto {
   tipo: TipoCulto;
 }
 
+export type TipoMinisterioFuncao = 'Ancião' | 'Diácono' | 'Cooperador do Ofício' | 'Cooperador de Jovens e Menores';
+
+export interface MinisterioMembro {
+  id: string;
+  nome: string;
+  funcao: TipoMinisterioFuncao;
+  ehLocalidade: boolean; // Se é da localidade (negrito)
+  ehResponsavel: boolean; // Se é responsável pela localidade (itálico)
+}
+
+// Tipos para Ensaios da Congregação
+export type TipoEnsaioCongregacao = 'Local' | 'Regional' | 'DARPE' | 'GEM' | 'GERAL';
+
+export interface DiaEnsaio {
+  id: string;
+  semanaDoMes: number; // 1, 2, 3, 4 ou 5
+  diaSemana: string; // 'Segunda', 'Terça', etc
+  horario: string; // 'HH:mm'
+  tipo: TipoEnsaioCongregacao;
+  meses: number[]; // Array de meses (1-12) quando ocorre o ensaio
+}
+
 export interface Congregacao {
   id: string;
   nome: string;
   endereco: string;
   cidade: string;
   bairro: string;
+  numeroRelatorio?: string; // Número de relatório da congregação
   // Novos campos para múltiplos dias/horários
   diasCultos?: DiaCulto[];
   diasRJM?: DiaCulto[];
+  diasEnsaios?: DiaEnsaio[]; // Dias de ensaios
   // Campos legados para compatibilidade
   diasCultosLegado?: string;
   diasRJMLegado?: string;
-  diasEnsaios?: string;
+  diasEnsaiosLegado?: string;
+  // Ministério da congregação
+  ministerio?: MinisterioMembro[];
 }
 
 export type TipoMinisterio = 'Ancião' | 'Diácono' | 'Cooperador do Ofício' | 'Cooperador de Jovens e Menores';

@@ -20,7 +20,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/ccb-admin-suite">
+      <BrowserRouter basename={import.meta.env.PROD ? "/ccb-admin-suite" : ""}>
         <Layout>
           <Routes>
             <Route path="/" element={<Index />} />

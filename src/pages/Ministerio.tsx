@@ -131,7 +131,9 @@ export default function Ministerio() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m) => (
+                {[...filtered]
+                  .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                  .map((m) => (
                   <tr key={m.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-foreground">{m.nome}</td>
                     <td className="px-4 py-3">
