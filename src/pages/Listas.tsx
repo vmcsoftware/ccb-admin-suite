@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FileText, Download, Settings, Eye, Edit2, Trash2 } from 'lucide-react';
+import { FileText, Download, Settings, Eye, Edit2, Trash2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+interface Categoria {
+  id: string;
+  nome: string;
+}
+
 interface Lista {
   id: string;
   nome: string;
@@ -16,6 +21,7 @@ interface Lista {
   ano: number;
   ativa: boolean;
   data: string;
+  categorias: Categoria[];
 }
 
 export default function Listas() {
@@ -25,10 +31,12 @@ export default function Listas() {
   const { eventos } = useEventos();
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const [tela, setTela] = useState<'inicial' | 'editor'>('inicial');
+  const [tela, setTela] = useState<'inicial' | 'editor' | 'gerenciar'>('inicial');
   const [listas, setListas] = useState<Lista[]>([]);
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [listaEditando, setListaEditando] = useState<Lista | null>(null);
+  const [categoriasFiltro, setCategoriasFiltro] = useState('todas');
+  const [novaCategoriaNome, setNovaCategoriaNome] = useState('');
 
   // Estado do editor
   const [aba, setAba] = useState<'dados' | 'filtros' | 'preview'>('dados');
@@ -69,6 +77,7 @@ export default function Listas() {
       ano: agora.getFullYear(),
       ativa: true,
       data: new Date().toISOString().slice(0, 10),
+      categorias: [],
     };
     setListaEditando(novaLista);
     setTela('editor');
@@ -91,8 +100,44 @@ export default function Listas() {
     } else {
       setListas((prev) => [...prev, listaEditando]);
     }
-    setTela('inicial');
-    setListaEditando(null);
+    setTela('gerenciar');
+    setCategoriasFiltro('todas');
+    setNovaCategoriaNome('');
+  };
+
+  const adicionarCategoria = () => {
+    if (!listaEditando || !novaCategoriaNome.trim()) return;
+    const novaCategoria: Categoria = {
+      id: Date.now().toString(),
+      nome: novaCategoriaNome,
+    };
+    setListaEditando((prev) =>
+      prev
+        ? { ...prev, categorias: [...prev.categorias, novaCategoria] }
+        : null
+    );
+    setNovaCategoriaNome('');
+  };
+
+  const removerCategoria = (id: string) => {
+    setListaEditando((prev) =>
+      prev
+        ? { ...prev, categorias: prev.categorias.filter((c) => c.id !== id) }
+        : null
+    );
+  };
+
+  const editarCategoria = (id: string, nome: string) => {
+    setListaEditando((prev) =>
+      prev
+        ? {
+            ...prev,
+            categorias: prev.categorias.map((c) =>
+              c.id === id ? { ...c, nome } : c
+            ),
+          }
+        : null
+    );
   };
 
   const listasFiltradas = listas.filter((l) => l.ano === anoFiltro).sort((a, b) => a.mes - b.mes);
@@ -204,6 +249,123 @@ export default function Listas() {
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
 
+  // TELA: GERENCIAR CATEGORIAS
+  if (tela === 'gerenciar' && listaEditando) {
+    const categoriasFiltradas = categoriasFiltro === 'todas' ? listaEditando.categorias : listaEditando.categorias.filter(c => c.nome === categoriasFiltro);
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => { setTela('inicial'); setListaEditando(null); }}
+            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
+          <h1 className="text-2xl font-bold font-display text-foreground">
+            {meses[listaEditando.mes]} de {listaEditando.ano}
+          </h1>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2">
+              <Download className="h-4 w-4" /> Exportar
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Atualizar
+            </Button>
+          </div>
+        </div>
+
+        {/* Abas */}
+        <div className="flex gap-4 border-b border-border">
+          <button className="px-4 py-2 font-medium text-primary border-b-2 border-primary">
+            Reuniões
+          </button>
+          <button className="px-4 py-2 font-medium text-muted-foreground hover:text-foreground">
+            Avisos
+          </button>
+          <button className="px-4 py-2 font-medium text-muted-foreground hover:text-foreground">
+            Preview
+          </button>
+        </div>
+
+        {/* Filtro e Botão */}
+        <div className="flex items-center justify-between">
+          <select
+            value={categoriasFiltro}
+            onChange={(e) => setCategoriasFiltro(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="todas">Todas</option>
+            {[...new Set(listaEditando.categorias.map(c => c.nome))].map((nome) => (
+              <option key={nome} value={nome}>
+                {nome}
+              </option>
+            ))}
+          </select>
+          <Button className="gap-2">
+            Nova Categoria
+          </Button>
+        </div>
+
+        {/* Lista de Categorias */}
+        <div className="space-y-2">
+          {categoriasFiltradas.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma categoria adicionada
+            </div>
+          ) : (
+            categoriasFiltradas.map((cat) => (
+              <div key={cat.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded border border-border" />
+                  <span className="font-medium text-foreground">{cat.nome}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => removerCategoria(cat.id)}
+                    className="px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 className="h-4 w-4" /> Remover
+                  </button>
+                  <button
+                    className="px-3 py-1.5 rounded text-sm font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
+                  >
+                    <Edit2 className="h-4 w-4" /> Editar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Input Nova Categoria */}
+        <div className="glass-card rounded-xl p-5 space-y-3">
+          <Label className="font-semibold text-foreground">Adicionar Nova Categoria</Label>
+          <div className="flex gap-2">
+            <Input
+              value={novaCategoriaNome}
+              onChange={(e) => setNovaCategoriaNome(e.target.value)}
+              placeholder="Nome da categoria (ex: Batismos)"
+              onKeyPress={(e) => e.key === 'Enter' && adicionarCategoria()}
+            />
+            <Button onClick={adicionarCategoria}>Adicionar</Button>
+          </div>
+        </div>
+
+        {/* Botão Salvar */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => { setTela('inicial'); setListaEditando(null); }}>
+            Cancelar
+          </Button>
+          <Button onClick={() => { const novaListaAtualizada = listaEditando; setListas((prev) => prev.map((l) => l.id === novaListaAtualizada.id ? novaListaAtualizada : l)); setTela('inicial'); setListaEditando(null); }}>
+            Salvar Alterações
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (tela === 'inicial') {
     return (
       <div className="space-y-6">
@@ -288,19 +450,20 @@ export default function Listas() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Organize e exporte dados de congregações, eventos e reforços
-          </p>
+  if (tela === 'editor') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Organize e exporte dados de congregações, eventos e reforços
+            </p>
+          </div>
+          <Button onClick={() => { setTela('inicial'); setListaEditando(null); }} variant="outline" className="gap-2">
+            Voltar
+          </Button>
         </div>
-        <Button onClick={() => { setTela('inicial'); setListaEditando(null); }} variant="outline" className="gap-2">
-          Voltar
-        </Button>
-      </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-2 border-b border-border">
@@ -751,5 +914,8 @@ export default function Listas() {
         </div>
       )}
     </div>
-  );
+    );
+  }
+
+  return null;
 }
