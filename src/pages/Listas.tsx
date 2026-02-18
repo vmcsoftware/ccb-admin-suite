@@ -380,6 +380,36 @@ export default function Listas() {
 
           {/* Tabelas por tipo de evento */}
           <div className="space-y-6">
+            {/* TODOS OS EVENTOS AGENDADOS */}
+            {incluirEventos && getEventosFiltrados().length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">TODOS OS EVENTOS AGENDADOS</h4>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 border border-gray-400">
+                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">TIPO</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getEventosFiltrados()
+                      .map((e) => (
+                        <tr key={e.id} className="border border-gray-400">
+                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.subtipoReuniao || e.tipo || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* BATISMO */}
             {incluirEventos && getEventosFiltrados().filter(e => e.subtipoReuniao === 'Batismo').length > 0 && (
               <div className="space-y-2">
