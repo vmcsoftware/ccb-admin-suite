@@ -40,6 +40,25 @@ const emptyDiaCulto: DiaCulto = {
   tipo: 'Culto Oficial',
 };
 
+const removeRenderingErrorDuringEdit = (congregacao: Congregacao): typeof emptyForm => {
+  return {
+    nome: congregacao.nome || '',
+    endereco: congregacao.endereco || '',
+    cidade: congregacao.cidade || '',
+    bairro: congregacao.bairro || '',
+    // Garante que são arrays, nunca strings
+    diasCultos: Array.isArray(congregacao.diasCultos) 
+      ? congregacao.diasCultos 
+      : [],
+    diasRJM: Array.isArray(congregacao.diasRJM) 
+      ? congregacao.diasRJM 
+      : [],
+    diasEnsaios: typeof congregacao.diasEnsaios === 'string' 
+      ? congregacao.diasEnsaios 
+      : '',
+  };
+};
+
 export default function Congregacoes() {
   const { congregacoes, adicionar, remover, atualizar } = useCongregacoes();
   const [form, setForm] = useState(emptyForm);
@@ -63,7 +82,7 @@ export default function Congregacoes() {
   };
 
   const handleEdit = (congregacao: Congregacao) => {
-    setForm(congregacao);
+    setForm(removeRenderingErrorDuringEdit(congregacao));
     setEditingId(congregacao.id);
     setOpen(true);
   };
@@ -353,38 +372,58 @@ export default function Congregacoes() {
                 </p>
 
                 {/* Cultos Oficiais */}
-                {Array.isArray(c.diasCultos) && c.diasCultos.length > 0 && (
-                  <div>
-                    <p className="font-semibold text-xs text-foreground/70 mb-1">
-                      Cultos Oficiais:
-                    </p>
-                    <div className="space-y-1 ml-5">
-                      {c.diasCultos.map((dia, idx) => (
-                        <p key={idx} className="flex items-center gap-2 text-xs">
-                          <Clock className="h-3 w-3" />
-                          {dia.diasemana} às {formatarHora24(dia.horario)}
-                        </p>
-                      ))}
+                {(() => {
+                  const cultos = c.diasCultos;
+                  if (!Array.isArray(cultos) || cultos.length === 0) return null;
+                  
+                  return (
+                    <div>
+                      <p className="font-semibold text-xs text-foreground/70 mb-1">
+                        Cultos Oficiais:
+                      </p>
+                      <div className="space-y-1 ml-5">
+                        {cultos.map((dia, idx) => {
+                          if (dia && typeof dia === 'object' && 'diasemana' in dia) {
+                            return (
+                              <p key={idx} className="flex items-center gap-2 text-xs">
+                                <Clock className="h-3 w-3" />
+                                {String(dia.diasemana)} às {formatarHora24(String(dia.horario || '19:00'))}
+                              </p>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* RJM */}
-                {Array.isArray(c.diasRJM) && c.diasRJM.length > 0 && (
-                  <div>
-                    <p className="font-semibold text-xs text-foreground/70 mb-1">
-                      Reunião de Jovens e Menores:
-                    </p>
-                    <div className="space-y-1 ml-5">
-                      {c.diasRJM.map((dia, idx) => (
-                        <p key={idx} className="flex items-center gap-2 text-xs">
-                          <Clock className="h-3 w-3" />
-                          {dia.diasemana} às {formatarHora24(dia.horario)}
-                        </p>
-                      ))}
+                {(() => {
+                  const rjm = c.diasRJM;
+                  if (!Array.isArray(rjm) || rjm.length === 0) return null;
+                  
+                  return (
+                    <div>
+                      <p className="font-semibold text-xs text-foreground/70 mb-1">
+                        Reunião de Jovens e Menores:
+                      </p>
+                      <div className="space-y-1 ml-5">
+                        {rjm.map((dia, idx) => {
+                          if (dia && typeof dia === 'object' && 'diasemana' in dia) {
+                            return (
+                              <p key={idx} className="flex items-center gap-2 text-xs">
+                                <Clock className="h-3 w-3" />
+                                {String(dia.diasemana)} às {formatarHora24(String(dia.horario || '19:00'))}
+                              </p>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
               <div className="text-xs text-muted-foreground/60">{c.cidade}</div>
             </div>

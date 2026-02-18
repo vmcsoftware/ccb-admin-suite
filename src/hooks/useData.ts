@@ -12,6 +12,23 @@ import {
 import { db } from '@/lib/firebase';
 import { Congregacao, Membro, Evento, Reforco, Ensaio } from '@/types';
 
+/**
+ * Normaliza dados de Congregacao do formato antigo para o novo
+ */
+function normalizeCongregacao(data: Record<string, unknown>): Congregacao {
+  return {
+    id: (data.id as string) || '',
+    nome: (data.nome as string) || '',
+    endereco: (data.endereco as string) || '',
+    cidade: (data.cidade as string) || '',
+    bairro: (data.bairro as string) || '',
+    // Se for array, mantém; se for string vazia, converte para array vazio
+    diasCultos: Array.isArray(data.diasCultos) ? data.diasCultos : [],
+    diasRJM: Array.isArray(data.diasRJM) ? data.diasRJM : [],
+    diasEnsaios: typeof data.diasEnsaios === 'string' ? data.diasEnsaios : '',
+  };
+}
+
 function useFirestoreCollection<T extends { id: string }>(collectionName: string) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +36,16 @@ function useFirestoreCollection<T extends { id: string }>(collectionName: string
   useEffect(() => {
     const q = query(collection(db, collectionName));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as T));
+      const data = snapshot.docs.map((doc) => {
+        const rawData = { id: doc.id, ...doc.data() };
+        
+        // Normalizar congregações se necessário
+        if (collectionName === 'congregacoes') {
+          return normalizeCongregacao(rawData) as T;
+        }
+        
+        return rawData as T;
+      });
       setItems(data);
       setLoading(false);
     });
