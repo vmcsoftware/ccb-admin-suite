@@ -21,6 +21,8 @@ interface Lista {
   ano: number;
   ativa: boolean;
   data: string;
+  dataInicio?: string;
+  dataFim?: string;
   categorias: Categoria[];
 }
 
@@ -57,6 +59,11 @@ export default function Listas() {
   const [dataFim, setDataFim] = useState('');
   const [filtroTiposReunioes, setFiltroTiposReunioes] = useState<string[]>([]);
   const [filtroTiposEventos, setFiltroTiposEventos] = useState<string[]>([]);
+
+  // Estado da tela gerenciar
+  const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'avisos' | 'preview'>('reunioes');
+  const [filtroSetorGerenciar, setFiltroSetorGerenciar] = useState('todos');
+  const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
 
   // Carregar listas do localStorage
   useEffect(() => {
@@ -102,11 +109,17 @@ export default function Listas() {
     setTela('gerenciar');
     setCategoriasFiltro('todas');
     setNovaCategoriaNome('');
+    setAbaGerenciar('reunioes');
+    setFiltroSetorGerenciar('todos');
+    setFiltroCategoriasGerenciar('todas');
     resetFormulario();
   };
 
   const editarLista = (lista: Lista) => {
     setListaEditando(lista);
+    setAbaGerenciar('reunioes');
+    setFiltroSetorGerenciar('todos');
+    setFiltroCategoriasGerenciar('todas');
     setTela('editor');
   };
 
@@ -124,6 +137,9 @@ export default function Listas() {
     setTela('gerenciar');
     setCategoriasFiltro('todas');
     setNovaCategoriaNome('');
+    setAbaGerenciar('reunioes');
+    setFiltroSetorGerenciar('todos');
+    setFiltroCategoriasGerenciar('todas');
   };
 
   const adicionarCategoria = () => {
@@ -172,6 +188,9 @@ export default function Listas() {
     setDataFim('');
     setFiltroTiposReunioes([]);
     setFiltroTiposEventos([]);
+    setAbaGerenciar('reunioes');
+    setFiltroSetorGerenciar('todos');
+    setFiltroCategoriasGerenciar('todas');
   };
 
   const tiposReunioesDisponiveis = ['Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação'];
@@ -377,6 +396,23 @@ export default function Listas() {
     );
   }
 
+  // Funções auxiliares para gerenciar
+  const eventosSalvos = eventos.filter(e => {
+    if (listaEditando?.dataInicio) {
+      const eventoDate = e.data;
+      const dataInicio = listaEditando?.dataInicio ? new Date(listaEditando.dataInicio + 'T00:00:00') : null;
+      const dataFim = listaEditando?.dataFim ? new Date(listaEditando.dataFim + 'T23:59:59') : null;
+      if (dataInicio && eventoDate < new Date(dataInicio).toISOString().slice(0, 10)) return false;
+      if (dataFim && eventoDate > new Date(dataFim).toISOString().slice(0, 10)) return false;
+    }
+    return true;
+  }).sort((a, b) => a.data.localeCompare(b.data));
+
+  const eventosReuniao = eventosSalvos.filter(e => e.subtipoReuniao);
+  const eventosAvisos = eventosSalvos.filter(e => !e.subtipoReuniao);
+
+  const tiposEventosUnicos = [...new Set(eventosAvisos.map(e => e.tipo))].sort();
+
   // TELA: GERENCIAR CATEGORIAS
   if (tela === 'gerenciar' && listaEditando) {
     const categoriasFiltradas = categoriasFiltro === 'todas' ? listaEditando.categorias : listaEditando.categorias.filter(c => c.nome === categoriasFiltro);
@@ -406,80 +442,223 @@ export default function Listas() {
 
         {/* Abas */}
         <div className="flex gap-4 border-b border-border">
-          <button className="px-4 py-2 font-medium text-primary border-b-2 border-primary">
+          <button
+            onClick={() => setAbaGerenciar('reunioes')}
+            className={`px-4 py-2 font-medium ${
+              abaGerenciar === 'reunioes'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             Reuniões
           </button>
-          <button className="px-4 py-2 font-medium text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => setAbaGerenciar('avisos')}
+            className={`px-4 py-2 font-medium ${
+              abaGerenciar === 'avisos'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             Avisos
           </button>
-          <button className="px-4 py-2 font-medium text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => setAbaGerenciar('preview')}
+            className={`px-4 py-2 font-medium ${
+              abaGerenciar === 'preview'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             Preview
           </button>
         </div>
 
-        {/* Filtro e Botão */}
-        <div className="flex items-center justify-between">
-          <select
-            value={categoriasFiltro}
-            onChange={(e) => setCategoriasFiltro(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="todas">Todas</option>
-            {[...new Set(listaEditando.categorias.map(c => c.nome))].map((nome) => (
-              <option key={nome} value={nome}>
-                {nome}
-              </option>
-            ))}
-          </select>
-          <Button className="gap-2">
-            Nova Categoria
-          </Button>
-        </div>
-
-        {/* Lista de Categorias */}
-        <div className="space-y-2">
-          {categoriasFiltradas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma categoria adicionada
+        {/* ABA: REUNIÕES */}
+        {abaGerenciar === 'reunioes' && (
+          <>
+            {/* Filtro e Botão */}
+            <div className="flex items-center justify-between">
+              <select
+                value={categoriasFiltro}
+                onChange={(e) => setCategoriasFiltro(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="todas">Todas</option>
+                {[...new Set(listaEditando.categorias.map(c => c.nome))].map((nome) => (
+                  <option key={nome} value={nome}>
+                    {nome}
+                  </option>
+                ))}
+              </select>
+              <Button className="gap-2">
+                Nova Categoria
+              </Button>
             </div>
-          ) : (
-            categoriasFiltradas.map((cat) => (
-              <div key={cat.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-border">
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded border border-border" />
-                  <span className="font-medium text-foreground">{cat.nome}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => removerCategoria(cat.id)}
-                    className="px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
-                  >
-                    <Trash2 className="h-4 w-4" /> Remover
-                  </button>
-                  <button
-                    className="px-3 py-1.5 rounded text-sm font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
-                  >
-                    <Edit2 className="h-4 w-4" /> Editar
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
 
-        {/* Input Nova Categoria */}
-        <div className="glass-card rounded-xl p-5 space-y-3">
-          <Label className="font-semibold text-foreground">Adicionar Nova Categoria</Label>
-          <div className="flex gap-2">
-            <Input
-              value={novaCategoriaNome}
-              onChange={(e) => setNovaCategoriaNome(e.target.value)}
-              placeholder="Nome da categoria (ex: Batismos)"
-              onKeyPress={(e) => e.key === 'Enter' && adicionarCategoria()}
-            />
-            <Button onClick={adicionarCategoria}>Adicionar</Button>
+            {/* Lista de Categorias */}
+            <div className="space-y-2">
+              {categoriasFiltradas.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma categoria adicionada
+                </div>
+              ) : (
+                categoriasFiltradas.map((cat) => (
+                  <div key={cat.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded border border-border" />
+                      <span className="font-medium text-foreground">{cat.nome}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => removerCategoria(cat.id)}
+                        className="px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" /> Remover
+                      </button>
+                      <button
+                        className="px-3 py-1.5 rounded text-sm font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
+                      >
+                        <Edit2 className="h-4 w-4" /> Editar
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input Nova Categoria */}
+            <div className="glass-card rounded-xl p-5 space-y-3">
+              <Label className="font-semibold text-foreground">Adicionar Nova Categoria</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={novaCategoriaNome}
+                  onChange={(e) => setNovaCategoriaNome(e.target.value)}
+                  placeholder="Nome da categoria (ex: Batismos)"
+                  onKeyPress={(e) => e.key === 'Enter' && adicionarCategoria()}
+                />
+                <Button onClick={adicionarCategoria}>Adicionar</Button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ABA: AVISOS */}
+        {abaGerenciar === 'avisos' && (
+          <div className="space-y-4">
+            {eventosAvisos.length === 0 ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <p className="text-muted-foreground">Nenhum aviso agendado para este período.</p>
+              </div>
+            ) : (
+              <>
+                {tiposEventosUnicos.map((tipo) => {
+                  const eventosPorTipo = eventosAvisos.filter(e => e.tipo === tipo);
+                  return (
+                    <div key={tipo} className="space-y-2">
+                      <h4 className="font-bold text-sm text-foreground uppercase">{tipo}</h4>
+                      <div className="glass-card rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-4 py-2 text-left">Data</th>
+                              <th className="px-4 py-2 text-left">Hora</th>
+                              <th className="px-4 py-2 text-left">Localidade</th>
+                              <th className="px-4 py-2 text-left">Responsável</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {eventosPorTipo.map((e) => (
+                              <tr key={e.id} className="border-b border-border hover:bg-muted/30">
+                                <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                <td className="px-4 py-2">{e.horario || '—'}</td>
+                                <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                                <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* ABA: PREVIEW */}
+        {abaGerenciar === 'preview' && (
+          <div className="space-y-4">
+            {/* Filtros */}
+            <div className="flex gap-4">
+              <select
+                value={filtroSetorGerenciar}
+                onChange={(e) => setFiltroSetorGerenciar(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="todos">Todos setores</option>
+                {congregacoes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {getCongregacaoNome(c.id)}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filtroCategoriasGerenciar}
+                onChange={(e) => setFiltroCategoriasGerenciar(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="todas">Todas categorias</option>
+                {[...new Set(eventosSalvos.map(e => e.subtipoReuniao || e.tipo))].
+                  filter(Boolean)
+                  .sort()
+                  .map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Tabela de eventos */}
+            {eventosSalvos.length === 0 ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <p className="text-muted-foreground">Nenhum evento agendado para este período.</p>
+              </div>
+            ) : (
+              <div className="glass-card rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border">
+                      <th className="px-4 py-2 text-left">Data</th>
+                      <th className="px-4 py-2 text-left">Hora</th>
+                      <th className="px-4 py-2 text-left">Tipo</th>
+                      <th className="px-4 py-2 text-left">Localidade</th>
+                      <th className="px-4 py-2 text-left">Responsável</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eventosSalvos
+                      .filter((e) =>
+                        (filtroSetorGerenciar === 'todos' || e.congregacaoId === filtroSetorGerenciar) &&
+                        (filtroCategoriasGerenciar === 'todas' || e.subtipoReuniao === filtroCategoriasGerenciar || e.tipo === filtroCategoriasGerenciar)
+                      )
+                      .map((e) => (
+                        <tr key={e.id} className="border-b border-border hover:bg-muted/30">
+                          <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                          <td className="px-4 py-2">{e.horario || '—'}</td>
+                          <td className="px-4 py-2 font-medium">{e.subtipoReuniao || e.tipo}</td>
+                          <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                          <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Botão Salvar */}
         <div className="flex justify-end gap-2">
