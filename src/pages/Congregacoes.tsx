@@ -121,6 +121,7 @@ export default function Congregacoes() {
   const [membroSelecionadoId, setMembroSelecionadoId] = useState<string>('');
   const [novoDiaEnsaio, setNovoDiaEnsaio] = useState<Omit<DiaEnsaio, 'id'>>(emptyDiaEnsaio);
   const [datasEnsaioVisualizado, setDatasEnsaioVisualizado] = useState<Date[]>([]);
+  const [viewingCongregacao, setViewingCongregacao] = useState<Congregacao | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -819,6 +820,13 @@ export default function Congregacoes() {
                 </div>
                 <div className="flex gap-1">
                   <button
+                    onClick={() => setViewingCongregacao(c)}
+                    className="text-muted-foreground hover:text-primary transition-colors p-1"
+                    title="Visualizar"
+                  >
+                    👁️
+                  </button>
+                  <button
                     onClick={() => handleEdit(c)}
                     className="text-muted-foreground hover:text-primary transition-colors p-1"
                   >
@@ -842,6 +850,120 @@ export default function Congregacoes() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Modal de Visualização */}
+      {viewingCongregacao && (
+        <Dialog open={!!viewingCongregacao} onOpenChange={() => setViewingCongregacao(null)}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-display">{viewingCongregacao.nome}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Endereço */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Informações Gerais</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p><strong>Endereço:</strong> {viewingCongregacao.endereco}</p>
+                  <p><strong>Bairro:</strong> {viewingCongregacao.bairro}</p>
+                  <p><strong>Cidade:</strong> {viewingCongregacao.cidade}</p>
+                  {viewingCongregacao.numeroRelatorio && (
+                    <p><strong>Número de Relatório:</strong> {viewingCongregacao.numeroRelatorio}</p>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Cultos */}
+              {viewingCongregacao.diasCultos && viewingCongregacao.diasCultos.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Clock className="h-4 w-4" /> Cultos Oficiais
+                    </h4>
+                    <div className="space-y-2">
+                      {viewingCongregacao.diasCultos.map((culto, idx) => (
+                        <Card key={idx} className="p-3 bg-muted/30">
+                          <p className="text-sm font-medium">{culto.diasemana} - {formatarHora24(culto.horario)}</p>
+                          <p className="text-xs text-muted-foreground">{culto.tipo}</p>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* RJM */}
+              {viewingCongregacao.diasRJM && viewingCongregacao.diasRJM.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Reunião de Jovens e Menores
+                    </h4>
+                    <div className="space-y-2">
+                      {viewingCongregacao.diasRJM.map((rjm, idx) => (
+                        <Card key={idx} className="p-3 bg-muted/30">
+                          <p className="text-sm font-medium">{rjm.diasemana} - {formatarHora24(rjm.horario)}</p>
+                          <p className="text-xs text-muted-foreground">{rjm.tipo}</p>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* Ensaios */}
+              {viewingCongregacao.diasEnsaios && viewingCongregacao.diasEnsaios.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" /> Ensaios
+                    </h4>
+                    <div className="space-y-2">
+                      {viewingCongregacao.diasEnsaios.map((ensaio) => (
+                        <Card key={ensaio.id} className="p-3 bg-muted/30">
+                          <p className="text-sm font-medium">{ensaio.tipo}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ensaio.diaSemana} - {formatarHora24(ensaio.horario)} • Semana {ensaio.semanaDoMes}
+                          </p>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* Ministério */}
+              {viewingCongregacao.ministerio && viewingCongregacao.ministerio.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Ministério
+                  </h4>
+                  <div className="space-y-2">
+                    {viewingCongregacao.ministerio
+                      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                      .map((membro) => (
+                        <Card key={membro.id} className="p-3 bg-muted/30">
+                          <p className={`text-sm ${membro.ehResponsavel ? 'italic' : ''} ${membro.ehLocalidade ? 'font-bold' : ''}`}>
+                            {membro.nome}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {membro.funcao}
+                            {membro.ehLocalidade && ' • Da localidade'}
+                            {membro.ehResponsavel && ' • Responsável'}
+                          </p>
+                        </Card>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
