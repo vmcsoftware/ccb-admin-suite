@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { useEnsaios } from '@/hooks/useData';
 import { Ensaio, NivelEnsaio, RegrasEnsaio } from '@/types';
+import { formatarHora24 } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -217,13 +218,18 @@ export default function Ensaios() {
                       <div className="grid gap-4">
                         {/* Horário */}
                         <div>
-                          <Label className="text-sm">Horário</Label>
+                          <Label className="text-sm">Horário (24h)</Label>
                           <Input
                             type="time"
                             value={regra.horario}
-                            onChange={(e) =>
-                              updateRegra(idx, { horario: e.target.value })
-                            }
+                            onChange={(e) => {
+                              const hora = formatarHora24(e.target.value);
+                              updateRegra(idx, { horario: hora });
+                            }}
+                            step="60"
+                            pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+                            placeholder="HH:mm"
+                            required
                           />
                         </div>
 
@@ -442,7 +448,7 @@ export default function Ensaios() {
                       {regra.horario && (
                         <div>
                           <span className="text-muted-foreground">Horário:</span>{' '}
-                          {regra.horario}
+                          {formatarHora24(regra.horario)}
                         </div>
                       )}
                       {regra.diasSemana && regra.diasSemana.length > 0 && (

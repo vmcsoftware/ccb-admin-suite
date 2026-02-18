@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, MapPin, Clock, X } from 'lucide-react';
 import { useCongregacoes } from '@/hooks/useData';
-import { Congregacao, DiaCulto, TipoCulto } from '@/types';
-import { Button } from '@/components/ui/button';
+import { Congregacao, DiaCulto, TipoCulto } from '@/types';import { formatarHora24 } from '@/lib/utils';import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -240,13 +239,18 @@ export default function Congregacoes() {
                               </Select>
                             </div>
                             <div>
-                              <Label className="text-xs">Horário</Label>
+                              <Label className="text-xs">Horário (24h)</Label>
                               <Input
                                 type="time"
                                 value={dia.horario}
-                                onChange={(e) =>
-                                  updateDiaCulto(idx, { horario: e.target.value })
-                                }
+                                onChange={(e) => {
+                                  const hora = formatarHora24(e.target.value);
+                                  updateDiaCulto(idx, { horario: hora });
+                                }}
+                                step="60"
+                                pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+                                placeholder="HH:mm"
+                                required
                               />
                             </div>
                             <div>
@@ -358,7 +362,7 @@ export default function Congregacoes() {
                       {c.diasCultos.map((dia, idx) => (
                         <p key={idx} className="flex items-center gap-2 text-xs">
                           <Clock className="h-3 w-3" />
-                          {dia.diasemana} às {dia.horario}
+                          {dia.diasemana} às {formatarHora24(dia.horario)}
                         </p>
                       ))}
                     </div>
@@ -375,7 +379,7 @@ export default function Congregacoes() {
                       {c.diasRJM.map((dia, idx) => (
                         <p key={idx} className="flex items-center gap-2 text-xs">
                           <Clock className="h-3 w-3" />
-                          {dia.diasemana} às {dia.horario}
+                          {dia.diasemana} às {formatarHora24(dia.horario)}
                         </p>
                       ))}
                     </div>
