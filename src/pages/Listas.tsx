@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FileText, Download, Settings } from 'lucide-react';
 import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function Listas() {
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const { reforcos } = useReforcos();
   const { eventos } = useEventos();
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const [aba, setAba] = useState<'dados' | 'filtros' | 'preview'>('dados');
   const [selectedCongs, setSelectedCongs] = useState<string[]>([]);
@@ -75,191 +77,47 @@ export default function Listas() {
       : congregacao.nome;
   };
 
-  const gerarPDF = () => {
-    const congsData = congregacoes
-      .filter((c) => selectedCongs.includes(c.id))
-      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    const membrosData = membros
-      .filter((m) => selectedMembros.includes(m.id))
-      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    const eventosData = incluirEventos ? getEventosFiltrados() : [];
-    const reforcosFiltrados = incluirReforcos ? getReforcosFiltrados() : [];
-
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    let y = 20;
-
-    const checkPage = (needed: number) => {
-      if (y + needed > 280) {
+  const gerarPDF = async () => {
+    if (!previewRef.current) return;
+    
+    try {
+      const element = previewRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 1200,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 10;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 5;
+      
+      pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
         pdf.addPage();
-        y = 20;
+        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
-    };
-
-    // Header
-    pdf.setFontSize(18);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('ADMINISTRAÇÃO ITUIUTABA', pageWidth / 2, y, { align: 'center' });
-    y += 7;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Congregação Cristã no Brasil', pageWidth / 2, y, { align: 'center' });
-    y += 7;
-    pdf.setFontSize(9);
-    if (dataInicio || dataFim) {
-      const periodo = `${dataInicio ? new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—'} a ${dataFim ? new Date(dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}`;
-      pdf.text(`Período: ${periodo}`, pageWidth / 2, y, { align: 'center' });
-      y += 4;
+      
+      pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
     }
-    pdf.text('Lista gerada em ' + new Date().toLocaleDateString('pt-BR'), pageWidth / 2, y, { align: 'center' });
-    y += 4;
-
-    // Line
-    pdf.setDrawColor(30, 58, 95);
-    pdf.setLineWidth(0.5);
-    pdf.line(14, y, pageWidth - 14, y);
-    y += 10;
-
-    // Congregações
-    if (congsData.length > 0) {
-      checkPage(20);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 58, 95);
-      pdf.text('Congregações', 14, y);
-      y += 8;
-      pdf.setTextColor(0, 0, 0);
-
-      congsData.forEach((c) => {
-        checkPage(30);
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(c.nome, 18, y);
-        y += 5;
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'normal');
-        if (c.endereco || c.bairro) {
-          pdf.text(`Endereço: ${c.endereco}, ${c.bairro} - ${c.cidade}`, 22, y);
-          y += 4;
-        }
-        if (c.diasCultos) { pdf.text(`Cultos: ${c.diasCultos}`, 22, y); y += 4; }
-        if (c.diasRJM) { pdf.text(`RJM: ${c.diasRJM}`, 22, y); y += 4; }
-        if (c.diasEnsaios) { pdf.text(`Ensaios: ${c.diasEnsaios}`, 22, y); y += 4; }
-        y += 3;
-      });
-      y += 4;
-    }
-
-    // Eventos Agendados
-    if (eventosData.length > 0) {
-      checkPage(20);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 58, 95);
-      pdf.text('Eventos Agendados', 14, y);
-      y += 8;
-      pdf.setTextColor(0, 0, 0);
-
-      eventosData.forEach((e) => {
-        checkPage(16);
-        const cong = congregacoes.find((c) => c.id === e.congregacaoId);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        const dataFormatada = new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR');
-        const horario = e.horario ? ` ${e.horario}` : '';
-        const subtipo = e.subtipoReuniao || e.tipo;
-        const congNome = cong ? (cong.nome.toLowerCase().includes('central') ? `${cong.nome} (${cong.cidade})` : cong.nome) : '—';
-        pdf.text(`${dataFormatada}${horario} — ${subtipo} — ${congNome}`, 18, y);
-        y += 5;
-        if (e.anciaoAtende) {
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`Ancião: ${e.anciaoAtende}`, 22, y);
-          y += 4;
-        }
-        if (e.diaconoResponsavel) {
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`Diácono: ${e.diaconoResponsavel}`, 22, y);
-          y += 4;
-        }
-        y += 2;
-      });
-      y += 4;
-    }
-
-    // Ministério
-    if (membrosData.length > 0) {
-      checkPage(20);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 58, 95);
-      pdf.text('Ministério', 14, y);
-      y += 8;
-      pdf.setTextColor(0, 0, 0);
-
-      // Table header
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFillColor(240, 240, 245);
-      pdf.rect(14, y - 4, pageWidth - 28, 7, 'F');
-      pdf.text('Nome', 18, y);
-      pdf.text('Ministério', 110, y);
-      y += 6;
-
-      pdf.setFont('helvetica', 'normal');
-      membrosData.forEach((m) => {
-        checkPage(8);
-        pdf.text(m.nome, 18, y);
-        pdf.text(m.ministerio, 110, y);
-        y += 5;
-      });
-      y += 6;
-    }
-
-    // Reforços
-    if (incluirReforcos && reforcosFiltrados.length > 0) {
-      checkPage(20);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 58, 95);
-      pdf.text('Reforços Agendados', 14, y);
-      y += 8;
-      pdf.setTextColor(0, 0, 0);
-
-      reforcosFiltrados.forEach((r) => {
-        checkPage(16);
-        const cong = congregacoes.find((c) => c.id === r.congregacaoId);
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        const congNome = cong ? (cong.nome.toLowerCase().includes('central') ? `${cong.nome} (${cong.cidade})` : cong.nome) : '—';
-        pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${congNome}`, 18, y);
-        y += 5;
-        if (r.membros.length > 0) {
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          const nomes = [...r.membros]
-            .map((id) => ({ id, nome: membros.find((m) => m.id === id)?.nome || '—' }))
-            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-            .map((m) => m.nome);
-          pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
-          y += 5;
-        }
-        y += 3;
-      });
-    }
-
-    // Footer
-    const totalPages = pdf.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 290, { align: 'center' });
-    }
-
-    pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
@@ -505,7 +363,7 @@ export default function Listas() {
           </div>
 
           {/* Preview Section */}
-          <div className="glass-card rounded-xl p-8 space-y-6 bg-white">
+          <div ref={previewRef} className="glass-card rounded-xl p-8 space-y-6 bg-white">
           {/* Cabeçalho do Documento */}
           <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
             <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
