@@ -216,6 +216,36 @@ export default function Reforcos() {
                     </SelectContent>
                   </Select>
                 </div>
+                {form.congregacaoId && (() => {
+                  const cong = congregacoes.find(c => c.id === form.congregacaoId);
+                  const diasCulto = cong?.diasCultos || [];
+                  const diasRJM = cong?.diasRJM || [];
+                  
+                  return (diasCulto.length > 0 || diasRJM.length > 0) ? (
+                    <div className="p-3 bg-muted/30 rounded-lg space-y-2 text-sm">
+                      {diasCulto.length > 0 && (
+                        <div>
+                          <p className="font-medium text-foreground mb-1">Cultos:</p>
+                          <div className="space-y-1 text-muted-foreground">
+                            {diasCulto.map((d, idx) => (
+                              <p key={idx}>• {d.diasemana} {d.horario} - {d.tipo}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {diasRJM.length > 0 && (
+                        <div>
+                          <p className="font-medium text-foreground mb-1">RJM:</p>
+                          <div className="space-y-1 text-muted-foreground">
+                            {diasRJM.map((d, idx) => (
+                              <p key={idx}>• {d.diasemana} {d.horario} - {d.tipo}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
                 {membros.length > 0 && (
                   <div>
                     <Label>Irmãos</Label>
