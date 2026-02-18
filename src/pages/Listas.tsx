@@ -1,19 +1,26 @@
 import { useState } from 'react';
-import { FileText, Download } from 'lucide-react';
-import { useCongregacoes, useMembros, useReforcos } from '@/hooks/useData';
+import { FileText, Download, Calendar as CalIcon } from 'lucide-react';
+import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
 
 export default function Listas() {
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const { reforcos } = useReforcos();
+  const { eventos } = useEventos();
 
   const [selectedCongs, setSelectedCongs] = useState<string[]>([]);
   const [selectedMembros, setSelectedMembros] = useState<string[]>([]);
   const [incluirReforcos, setIncluirReforcos] = useState(false);
+  const [incluirEventos, setIncluirEventos] = useState(false);
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const toggleCong = (id: string) => {
     setSelectedCongs((s) => (s.includes(id) ? s.filter((i) => i !== id) : [...s, id]));
@@ -23,6 +30,28 @@ export default function Listas() {
     setSelectedMembros((s) => (s.includes(id) ? s.filter((i) => i !== id) : [...s, id]));
   };
 
+  const getEventosFiltrados = () => {
+    let filtered = [...eventos];
+    if (dataInicio) filtered = filtered.filter((e) => e.data >= dataInicio);
+    if (dataFim) filtered = filtered.filter((e) => e.data <= dataFim);
+    return filtered.sort((a, b) => a.data.localeCompare(b.data));
+  };
+
+  const getReforcosFiltrados = () => {
+    let filtered = [...reforcos];
+    if (dataInicio) filtered = filtered.filter((r) => r.data >= dataInicio);
+    if (dataFim) filtered = filtered.filter((r) => r.data <= dataFim);
+    return filtered.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+  };
+
+  const getCongregacaoNome = (id: string) => {
+    const congregacao = congregacoes.find((c) => c.id === id);
+    if (!congregacao) return '';
+    return congregacao.nome.toLowerCase().includes('central')
+      ? `${congregacao.nome} (${congregacao.cidade})`
+      : congregacao.nome;
+  };
+
   const gerarPDF = () => {
     const congsData = congregacoes
       .filter((c) => selectedCongs.includes(c.id))
@@ -30,6 +59,8 @@ export default function Listas() {
     const membrosData = membros
       .filter((m) => selectedMembros.includes(m.id))
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const eventosData = incluirEventos ? getEventosFiltrados() : [];
+    const reforcosFiltrados = incluirReforcos ? getReforcosFiltrados() : [];
 
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -52,6 +83,11 @@ export default function Listas() {
     pdf.text('Congregação Cristã no Brasil', pageWidth / 2, y, { align: 'center' });
     y += 7;
     pdf.setFontSize(9);
+    if (dataInicio || dataFim) {
+      const periodo = `${dataInicio ? new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—'} a ${dataFim ? new Date(dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}`;
+      pdf.text(`Período: ${periodo}`, pageWidth / 2, y, { align: 'center' });
+      y += 4;
+    }
     pdf.text('Lista gerada em ' + new Date().toLocaleDateString('pt-BR'), pageWidth / 2, y, { align: 'center' });
     y += 4;
 
@@ -91,6 +127,44 @@ export default function Listas() {
       y += 4;
     }
 
+    // Eventos Agendados
+    if (eventosData.length > 0) {
+      checkPage(20);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(30, 58, 95);
+      pdf.text('Eventos Agendados', 14, y);
+      y += 8;
+      pdf.setTextColor(0, 0, 0);
+
+      eventosData.forEach((e) => {
+        checkPage(16);
+        const cong = congregacoes.find((c) => c.id === e.congregacaoId);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        const dataFormatada = new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR');
+        const horario = e.horario ? ` ${e.horario}` : '';
+        const subtipo = e.subtipoReuniao || e.tipo;
+        const congNome = cong ? (cong.nome.toLowerCase().includes('central') ? `${cong.nome} (${cong.cidade})` : cong.nome) : '—';
+        pdf.text(`${dataFormatada}${horario} — ${subtipo} — ${congNome}`, 18, y);
+        y += 5;
+        if (e.anciaoAtende) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(`Ancião: ${e.anciaoAtende}`, 22, y);
+          y += 4;
+        }
+        if (e.diaconoResponsavel) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(`Diácono: ${e.diaconoResponsavel}`, 22, y);
+          y += 4;
+        }
+        y += 2;
+      });
+      y += 4;
+    }
+
     // Ministério
     if (membrosData.length > 0) {
       checkPage(20);
@@ -121,7 +195,7 @@ export default function Listas() {
     }
 
     // Reforços
-    if (incluirReforcos && reforcos.length > 0) {
+    if (incluirReforcos && reforcosFiltrados.length > 0) {
       checkPage(20);
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
@@ -130,33 +204,26 @@ export default function Listas() {
       y += 8;
       pdf.setTextColor(0, 0, 0);
 
-      [...reforcos]
-        .sort((a, b) => {
-          const dateCmp = new Date(a.data).getTime() - new Date(b.data).getTime();
-          if (dateCmp !== 0) return dateCmp;
-          const congA = congregacoes.find((c) => c.id === a.congregacaoId)?.nome || '';
-          const congB = congregacoes.find((c) => c.id === b.congregacaoId)?.nome || '';
-          return congA.localeCompare(congB, 'pt-BR');
-        })
-        .forEach((r) => {
-          checkPage(16);
-          const cong = congregacoes.find((c) => c.id === r.congregacaoId);
-          pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${cong?.nome || '—'}`, 18, y);
+      reforcosFiltrados.forEach((r) => {
+        checkPage(16);
+        const cong = congregacoes.find((c) => c.id === r.congregacaoId);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        const congNome = cong ? (cong.nome.toLowerCase().includes('central') ? `${cong.nome} (${cong.cidade})` : cong.nome) : '—';
+        pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${congNome}`, 18, y);
+        y += 5;
+        if (r.membros.length > 0) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          const nomes = [...r.membros]
+            .map((id) => ({ id, nome: membros.find((m) => m.id === id)?.nome || '—' }))
+            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+            .map((m) => m.nome);
+          pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
           y += 5;
-          if (r.membros.length > 0) {
-            pdf.setFontSize(9);
-            pdf.setFont('helvetica', 'normal');
-            const nomes = [...r.membros]
-              .map((id) => ({ id, nome: membros.find((m) => m.id === id)?.nome || '—' }))
-              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-              .map((m) => m.nome);
-            pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
-            y += 5;
-          }
-          y += 3;
-        });
+        }
+        y += 3;
+      });
     }
 
     // Footer
@@ -172,7 +239,7 @@ export default function Listas() {
     pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
-  const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos;
+  const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
 
   return (
     <div className="space-y-6">
@@ -233,9 +300,103 @@ export default function Listas() {
         </label>
       </div>
 
-      <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
-        <Download className="h-4 w-4" /> Gerar e Baixar Lista
-      </Button>
+      {/* Eventos */}
+      <div className="glass-card rounded-xl p-5 space-y-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox checked={incluirEventos} onCheckedChange={(v) => setIncluirEventos(!!v)} />
+          <span className="font-semibold font-display text-foreground">Incluir Eventos Agendados</span>
+          <span className="text-sm text-muted-foreground">({eventos.length})</span>
+        </label>
+        
+        {incluirEventos && (
+          <div className="grid grid-cols-2 gap-3 ml-6">
+            <div>
+              <Label className="text-xs">Data Início (opcional)</Label>
+              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Data Fim (opcional)</Label>
+              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Filtro de Período para Reforços */}
+      {incluirReforcos && (
+        <div className="glass-card rounded-xl p-5 space-y-3">
+          <h3 className="font-semibold font-display text-foreground text-sm">Filtrar Reforços por Período</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Data Início (opcional)</Label>
+              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Data Fim (opcional)</Label>
+              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview e Botões */}
+      <div className="flex gap-2">
+        <Button onClick={() => setShowPreview(!showPreview)} variant="outline" className="gap-2">
+          <FileText className="h-4 w-4" /> {showPreview ? 'Ocultar' : 'Visualizar'} Preview
+        </Button>
+        <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
+          <Download className="h-4 w-4" /> Gerar PDF e Baixar
+        </Button>
+      </div>
+
+      {/* Preview Section */}
+      {showPreview && (
+        <div className="glass-card rounded-xl p-5 space-y-4">
+          <h3 className="font-semibold font-display text-foreground">Preview da Lista</h3>
+          
+          {/* Eventos */}
+          {incluirEventos && getEventosFiltrados().length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-foreground">📅 Eventos Agendados</h4>
+              <div className="space-y-2">
+                {getEventosFiltrados().map((e) => (
+                  <div key={e.id} className="text-sm bg-muted/50 p-2 rounded">
+                    <p className="font-medium">{e.subtipoReuniao || e.tipo}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')} {e.horario && `às ${e.horario}`} • {getCongregacaoNome(e.congregacaoId) || '—'}
+                    </p>
+                    {e.anciaoAtende && <p className="text-xs">Ancião: {e.anciaoAtende}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reforços */}
+          {incluirReforcos && getReforcosFiltrados().length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-foreground">🔄 Reforços Agendados</h4>
+              <div className="space-y-2">
+                {getReforcosFiltrados().map((r) => (
+                  <div key={r.id} className="text-sm bg-muted/50 p-2 rounded">
+                    <p className="font-medium">{r.tipo}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} • {getCongregacaoNome(r.congregacaoId) || '—'}
+                    </p>
+                    {r.membros.length > 0 && (
+                      <p className="text-xs">Escalados: {r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ')}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum evento ou reforço no período selecionado.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
