@@ -23,6 +23,18 @@ import { Badge } from '@/components/ui/badge';
 
 const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Outro'];
 
+const tiposReunioes = [
+  'Reuniões',
+  'Santa-Ceia',
+  'Batismo',
+  'Reunião para Mocidade',
+  'Busca dos Dons',
+  'Reunião Setorial',
+  'Reunião Ministerial',
+  'Reunião Extra',
+  'Ordenação'
+];
+
 const tipoCor: Record<Evento['tipo'], string> = {
   Culto: 'bg-primary/10 text-primary border-primary/20',
   RJM: 'bg-accent/20 text-accent-foreground border-accent/30',
@@ -35,13 +47,19 @@ export default function Agenda() {
   const { eventos, adicionar, remover } = useEventos();
   const { congregacoes } = useCongregacoes();
   const [open, setOpen] = useState(false);
+  const [subtipoReunioes, setSubtipoReunioes] = useState('');
   const [form, setForm] = useState({ titulo: '', data: '', tipo: 'Culto' as Evento['tipo'], congregacaoId: '', descricao: '' });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.titulo || !form.data) return;
-    adicionar(form);
+    let titulo = form.titulo;
+    if (form.tipo === 'Reunião' && subtipoReunioes && !titulo) {
+      titulo = subtipoReunioes;
+    }
+    if (!titulo || !form.data) return;
+    adicionar({ ...form, titulo });
     setForm({ titulo: '', data: '', tipo: 'Culto', congregacaoId: '', descricao: '' });
+    setSubtipoReunioes('');
     setOpen(false);
   };
 
@@ -74,7 +92,10 @@ export default function Agenda() {
                 </div>
                 <div>
                   <Label>Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Evento['tipo'] })}>
+                  <Select value={form.tipo} onValueChange={(v) => {
+                    setForm({ ...form, tipo: v as Evento['tipo'] });
+                    if (v !== 'Reunião') setSubtipoReunioes('');
+                  }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {tiposEvento.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -82,6 +103,17 @@ export default function Agenda() {
                   </Select>
                 </div>
               </div>
+              {form.tipo === 'Reunião' && (
+                <div>
+                  <Label>Tipo de Reunião</Label>
+                  <Select value={subtipoReunioes} onValueChange={setSubtipoReunioes}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o tipo de reunião" /></SelectTrigger>
+                    <SelectContent>
+                      {tiposReunioes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {congregacoes.length > 0 && (
                 <div>
                   <Label>Congregação (opcional)</Label>
