@@ -22,7 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Jovens', 'Assembléia Geral Ordinária', 'Outro'];
+const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Jovens', 'Outro'];
 
 const tiposReunioes = [
   'Reuniões',
@@ -44,7 +44,6 @@ const tipoCor: Record<Evento['tipo'], string> = {
   Ensaio: 'bg-success/10 text-success border-success/20',
   Reunião: 'bg-warning/20 text-warning-foreground border-warning/30',
   Jovens: 'bg-violet/10 text-violet border-violet/20',
-  'Assembléia Geral Ordinária': 'bg-indigo/10 text-indigo border-indigo/20',
   Outro: 'bg-muted text-muted-foreground border-border',
 };
 

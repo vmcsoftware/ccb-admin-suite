@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { FileText, Download, Settings } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { FileText, Download, Settings, Eye, Edit2, Trash2 } from 'lucide-react';
 import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+interface Lista {
+  id: string;
+  nome: string;
+  mes: number;
+  ano: number;
+  ativa: boolean;
+  data: string;
+}
+
 export default function Listas() {
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
@@ -16,6 +25,12 @@ export default function Listas() {
   const { eventos } = useEventos();
   const previewRef = useRef<HTMLDivElement>(null);
 
+  const [tela, setTela] = useState<'inicial' | 'editor'>('inicial');
+  const [listas, setListas] = useState<Lista[]>([]);
+  const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
+  const [listaEditando, setListaEditando] = useState<Lista | null>(null);
+
+  // Estado do editor
   const [aba, setAba] = useState<'dados' | 'filtros' | 'preview'>('dados');
   const [selectedCongs, setSelectedCongs] = useState<string[]>([]);
   const [selectedMembros, setSelectedMembros] = useState<string[]>([]);
@@ -25,6 +40,73 @@ export default function Listas() {
   const [dataFim, setDataFim] = useState('');
   const [filtroTiposReunioes, setFiltroTiposReunioes] = useState<string[]>([]);
   const [filtroTiposEventos, setFiltroTiposEventos] = useState<string[]>([]);
+
+  // Carregar listas do localStorage
+  useEffect(() => {
+    const listasArmazenadas = localStorage.getItem('listas-ccb');
+    if (listasArmazenadas) {
+      try {
+        setListas(JSON.parse(listasArmazenadas));
+      } catch (e) {
+        console.error('Erro ao carregar listas:', e);
+      }
+    }
+  }, []);
+
+  // Salvar listas no localStorage
+  useEffect(() => {
+    localStorage.setItem('listas-ccb', JSON.stringify(listas));
+  }, [listas]);
+
+  const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+  const novaLista = () => {
+    const agora = new Date();
+    const novaLista: Lista = {
+      id: Date.now().toString(),
+      nome: 'Lista de Batismos e Diversos',
+      mes: agora.getMonth(),
+      ano: agora.getFullYear(),
+      ativa: true,
+      data: new Date().toISOString().slice(0, 10),
+    };
+    setListaEditando(novaLista);
+    setTela('editor');
+    resetFormulario();
+  };
+
+  const editarLista = (lista: Lista) => {
+    setListaEditando(lista);
+    setTela('editor');
+  };
+
+  const deletarLista = (id: string) => {
+    setListas((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const salvarLista = () => {
+    if (!listaEditando) return;
+    if (listaEditando.id && listas.find((l) => l.id === listaEditando.id)) {
+      setListas((prev) => prev.map((l) => (l.id === listaEditando.id ? listaEditando : l)));
+    } else {
+      setListas((prev) => [...prev, listaEditando]);
+    }
+    setTela('inicial');
+    setListaEditando(null);
+  };
+
+  const listasFiltradas = listas.filter((l) => l.ano === anoFiltro).sort((a, b) => a.mes - b.mes);
+
+  const resetFormulario = () => {
+    setSelectedCongs([]);
+    setSelectedMembros([]);
+    setIncluirReforcos(false);
+    setIncluirEventos(false);
+    setDataInicio('');
+    setDataFim('');
+    setFiltroTiposReunioes([]);
+    setFiltroTiposEventos([]);
+  };
 
   const tiposReunioesDisponiveis = ['Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação'];
   const tiposEventosDisponiveis = ['Culto', 'RJM', 'Ensaio', 'Jovens', 'Outro'];
@@ -122,13 +204,102 @@ export default function Listas() {
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
 
+  if (tela === 'inicial') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
+          </div>
+          <Button onClick={novaLista} className="gap-2">
+            <FileText className="h-4 w-4" /> Nova Lista
+          </Button>
+        </div>
+
+        {/* Filtro de Ano */}
+        <div className="flex items-center gap-4">
+          <Label className="font-semibold">Ano</Label>
+          <select
+            value={anoFiltro}
+            onChange={(e) => setAnoFiltro(parseInt(e.target.value))}
+            className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((ano) => (
+              <option key={ano} value={ano}>
+                {ano}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tabela de Listas */}
+        <div className="glass-card rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Lista</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Mês</th>
+                <th className="px-6 py-3 text-center font-semibold text-foreground">Status</th>
+                <th className="px-6 py-3 text-right font-semibold text-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listasFiltradas.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                    Nenhuma lista para {anoFiltro}
+                  </td>
+                </tr>
+              ) : (
+                listasFiltradas.map((lista) => (
+                  <tr key={lista.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                    <td className="px-6 py-3 text-foreground">{lista.nome}</td>
+                    <td className="px-6 py-3 text-foreground">{meses[lista.mes]} - {lista.ano}</td>
+                    <td className="px-6 py-3 text-center">
+                      <Badge variant={lista.ativa ? 'default' : 'secondary'}>
+                        {lista.ativa ? 'Ativada' : 'Desativada'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => editarLista(lista)}
+                          className="p-2 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground"
+                          title="Editar lista"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deletarLista(lista.id)}
+                          className="p-2 hover:bg-destructive/10 rounded transition-colors text-muted-foreground hover:text-destructive"
+                          title="Deletar lista"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Organize e exporte dados de congregações, eventos e reforços
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Organize e exporte dados de congregações, eventos e reforços
+          </p>
+        </div>
+        <Button onClick={() => { setTela('inicial'); setListaEditando(null); }} variant="outline" className="gap-2">
+          Voltar
+        </Button>
       </div>
 
       {/* Tab Navigation */}
@@ -168,6 +339,49 @@ export default function Listas() {
       {/* ABA: DADOS */}
       {aba === 'dados' && (
         <div className="space-y-6">
+          {/* Informações da Lista */}
+          <div className="glass-card rounded-xl p-5 space-y-4">
+            <h3 className="font-semibold font-display text-foreground">Informações da Lista</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-sm mb-2 block">Nome da Lista</Label>
+                <Input
+                  value={listaEditando?.nome || ''}
+                  onChange={(e) => setListaEditando((prev) => prev ? { ...prev, nome: e.target.value } : null)}
+                  placeholder="Nome da lista"
+                />
+              </div>
+              <div>
+                <Label className="text-sm mb-2 block">Mês</Label>
+                <select
+                  value={listaEditando?.mes || 0}
+                  onChange={(e) => setListaEditando((prev) => prev ? { ...prev, mes: parseInt(e.target.value) } : null)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {meses.map((m, i) => (
+                    <option key={i} value={i}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-sm mb-2 block">Ano</Label>
+                <select
+                  value={listaEditando?.ano || new Date().getFullYear()}
+                  onChange={(e) => setListaEditando((prev) => prev ? { ...prev, ano: parseInt(e.target.value) } : null)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Congregações */}
           <div className="glass-card rounded-xl p-5 space-y-3">
             <h3 className="font-semibold font-display text-foreground">Congregações</h3>
@@ -359,6 +573,9 @@ export default function Listas() {
           <div className="flex gap-2">
             <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
               <Download className="h-4 w-4" /> Gerar PDF e Baixar
+            </Button>
+            <Button onClick={salvarLista} className="gap-2">
+              <FileText className="h-4 w-4" /> Salvar Lista
             </Button>
           </div>
 
