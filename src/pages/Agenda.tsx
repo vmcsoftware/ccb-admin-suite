@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Calendar as CalIcon, Eye } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalIcon, Eye, Edit } from 'lucide-react';
 import { useEventos, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Evento } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ export default function Agenda() {
   const [open, setOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [subtipoReunioes, setSubtipoReunioes] = useState('');
   
   // Estados para controlar "de outra localidade"
@@ -138,10 +139,37 @@ export default function Agenda() {
       responsavelContagem: form.responsavelContagem ? getMembroNome(form.responsavelContagem) || form.responsavelContagem : '',
     };
     
+    // Se está editando, deletar o antigo e adicionar o novo
+    if (editingEventId) {
+      remover(editingEventId);
+    }
+    
     adicionar(formToSave);
     resetForm();
     setSubtipoReunioes('');
+    setEditingEventId(null);
     setOpen(false);
+  };
+
+  const handleEdit = (evento: Evento) => {
+    setEditingEventId(evento.id);
+    setForm({
+      titulo: evento.titulo || '',
+      data: evento.data || '',
+      horario: evento.horario || '',
+      tipo: evento.tipo,
+      congregacaoId: evento.congregacaoId || '',
+      descricao: evento.descricao || '',
+      anciaoAtende: evento.anciaoAtende || '',
+      anciaoLocalidade: evento.anciaoLocalidade || '',
+      encarregadoRegional: evento.encarregadoRegional || '',
+      encarregadoLocalidade: evento.encarregadoLocalidade || '',
+      diaconoResponsavel: evento.diaconoResponsavel || '',
+      diaconoAuxiliar: evento.diaconoAuxiliar || '',
+      responsavelContagem: evento.responsavelContagem || '',
+    });
+    setSubtipoReunioes(evento.subtipoReuniao || '');
+    setOpen(true);
   };
 
   const sorted = [...eventos].sort((a, b) => a.data.localeCompare(b.data));
@@ -172,6 +200,7 @@ export default function Agenda() {
               responsavelContagem: '',
             });
             setSubtipoReunioes('');
+            setEditingEventId(null);
           }
         }}>
           <DialogTrigger asChild>
@@ -179,7 +208,7 @@ export default function Agenda() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-display">Novo Evento</DialogTitle>
+              <DialogTitle className="font-display">{editingEventId ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -685,6 +714,13 @@ export default function Agenda() {
                     title="Visualizar detalhes"
                   >
                     <Eye className="h-4 w-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleEdit(ev)}
+                    className="text-muted-foreground hover:text-primary transition-colors p-1"
+                    title="Editar evento"
+                  >
+                    <Edit className="h-4 w-4" />
                   </button>
                   <button onClick={() => remover(ev.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
                     <Trash2 className="h-4 w-4" />
