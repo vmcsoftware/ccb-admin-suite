@@ -4,6 +4,7 @@ import { useCongregacoes, useMembros, useReforcos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import jsPDF from 'jspdf';
 
 export default function Listas() {
   const { congregacoes } = useCongregacoes();
@@ -26,50 +27,134 @@ export default function Listas() {
     const congsData = congregacoes.filter((c) => selectedCongs.includes(c.id));
     const membrosData = membros.filter((m) => selectedMembros.includes(m.id));
 
-    let content = 'ADMINISTRAÇÃO ITUIUTABA - CCB\n';
-    content += 'Lista Gerada em ' + new Date().toLocaleDateString('pt-BR') + '\n';
-    content += '='.repeat(50) + '\n\n';
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    let y = 20;
 
+    const checkPage = (needed: number) => {
+      if (y + needed > 280) {
+        pdf.addPage();
+        y = 20;
+      }
+    };
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('ADMINISTRAÇÃO ITUIUTABA', pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Congregação Cristã no Brasil', pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    pdf.setFontSize(9);
+    pdf.text('Lista gerada em ' + new Date().toLocaleDateString('pt-BR'), pageWidth / 2, y, { align: 'center' });
+    y += 4;
+
+    // Line
+    pdf.setDrawColor(30, 58, 95);
+    pdf.setLineWidth(0.5);
+    pdf.line(14, y, pageWidth - 14, y);
+    y += 10;
+
+    // Congregações
     if (congsData.length > 0) {
-      content += 'CONGREGAÇÕES\n' + '-'.repeat(30) + '\n';
+      checkPage(20);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(30, 58, 95);
+      pdf.text('Congregações', 14, y);
+      y += 8;
+      pdf.setTextColor(0, 0, 0);
+
       congsData.forEach((c) => {
-        content += `\n${c.nome}\n`;
-        content += `  Endereço: ${c.endereco}, ${c.bairro} - ${c.cidade}\n`;
-        if (c.diasCultos) content += `  Cultos: ${c.diasCultos}\n`;
-        if (c.diasRJM) content += `  RJM: ${c.diasRJM}\n`;
-        if (c.diasEnsaios) content += `  Ensaios: ${c.diasEnsaios}\n`;
-      });
-      content += '\n';
-    }
-
-    if (membrosData.length > 0) {
-      content += 'MINISTÉRIO\n' + '-'.repeat(30) + '\n';
-      membrosData.forEach((m) => {
-        content += `  ${m.nome} — ${m.ministerio}\n`;
-      });
-      content += '\n';
-    }
-
-    if (incluirReforcos && reforcos.length > 0) {
-      content += 'REFORÇOS AGENDADOS\n' + '-'.repeat(30) + '\n';
-      reforcos.forEach((r) => {
-        const cong = congregacoes.find((c) => c.id === r.congregacaoId);
-        content += `  ${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} - ${r.tipo} - ${cong?.nome || '—'}\n`;
-        if (r.membros.length > 0) {
-          const nomes = r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—');
-          content += `    Escalados: ${nomes.join(', ')}\n`;
+        checkPage(30);
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(c.nome, 18, y);
+        y += 5;
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        if (c.endereco || c.bairro) {
+          pdf.text(`Endereço: ${c.endereco}, ${c.bairro} - ${c.cidade}`, 22, y);
+          y += 4;
         }
+        if (c.diasCultos) { pdf.text(`Cultos: ${c.diasCultos}`, 22, y); y += 4; }
+        if (c.diasRJM) { pdf.text(`RJM: ${c.diasRJM}`, 22, y); y += 4; }
+        if (c.diasEnsaios) { pdf.text(`Ensaios: ${c.diasEnsaios}`, 22, y); y += 4; }
+        y += 3;
+      });
+      y += 4;
+    }
+
+    // Ministério
+    if (membrosData.length > 0) {
+      checkPage(20);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(30, 58, 95);
+      pdf.text('Ministério', 14, y);
+      y += 8;
+      pdf.setTextColor(0, 0, 0);
+
+      // Table header
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFillColor(240, 240, 245);
+      pdf.rect(14, y - 4, pageWidth - 28, 7, 'F');
+      pdf.text('Nome', 18, y);
+      pdf.text('Ministério', 110, y);
+      y += 6;
+
+      pdf.setFont('helvetica', 'normal');
+      membrosData.forEach((m) => {
+        checkPage(8);
+        pdf.text(m.nome, 18, y);
+        pdf.text(m.ministerio, 110, y);
+        y += 5;
+      });
+      y += 6;
+    }
+
+    // Reforços
+    if (incluirReforcos && reforcos.length > 0) {
+      checkPage(20);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(30, 58, 95);
+      pdf.text('Reforços Agendados', 14, y);
+      y += 8;
+      pdf.setTextColor(0, 0, 0);
+
+      reforcos.forEach((r) => {
+        checkPage(16);
+        const cong = congregacoes.find((c) => c.id === r.congregacaoId);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')} — ${r.tipo} — ${cong?.nome || '—'}`, 18, y);
+        y += 5;
+        if (r.membros.length > 0) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          const nomes = r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—');
+          pdf.text(`Escalados: ${nomes.join(', ')}`, 22, y);
+          y += 5;
+        }
+        y += 3;
       });
     }
 
-    // Create and download as text file (PDF would require a library)
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lista-ccb-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Footer
+    const totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 290, { align: 'center' });
+    }
+
+    pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos;
