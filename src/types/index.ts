@@ -72,6 +72,7 @@ export interface Reforco {
   tipo: 'Culto' | 'RJM';
   congregacaoId: string;
   membros: string[];
+  membrosOutrasLocalidades?: Array<{ nome: string; localidade: string }>;
   observacoes?: string;
 }
 

@@ -30,11 +30,14 @@ export default function Reforcos() {
   const { membros } = useMembros();
   const [open, setOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
+  const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '' });
   const [form, setForm] = useState({
     data: '',
     tipo: 'Culto' as Reforco['tipo'],
     congregacaoId: '',
     membros: [] as string[],
+    membrosOutrasLocalidades: [] as Array<{ nome: string; localidade: string }>,
     observacoes: '',
   });
 
@@ -83,7 +86,9 @@ export default function Reforcos() {
 
     setValidationError(null);
     adicionar(form);
-    setForm({ data: '', tipo: 'Culto', congregacaoId: '', membros: [], observacoes: '' });
+    setForm({ data: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
+    setShowOutraLocalidade(false);
+    setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
     setOpen(false);
   };
 
@@ -108,7 +113,11 @@ export default function Reforcos() {
           </div>
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
-            if (!isOpen) setValidationError(null);
+            if (!isOpen) {
+              setValidationError(null);
+              setShowOutraLocalidade(false);
+              setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
+            }
           }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Reforço</Button>
@@ -172,7 +181,7 @@ export default function Reforcos() {
                 </div>
                 {membros.length > 0 && (
                   <div>
-                    <Label>Membros Escalados</Label>
+                    <Label>Irmãos</Label>
                     <div className="mt-2 space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
                       {[...membros]
                         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
@@ -183,10 +192,79 @@ export default function Reforcos() {
                             onCheckedChange={() => toggleMembro(m.id)}
                           />
                           <span className="text-foreground">{m.nome}</span>
-                          <span className="text-muted-foreground text-xs">({m.ministerio})</span>
                         </label>
                       ))}
                     </div>
+                  </div>
+                )}
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={showOutraLocalidade}
+                      onCheckedChange={setShowOutraLocalidade}
+                    />
+                    <span className="text-sm font-medium">Irmão de outra localidade</span>
+                  </label>
+                </div>
+                {showOutraLocalidade && (
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+                    <div>
+                      <Label className="text-sm">Nome do Irmão</Label>
+                      <Input
+                        placeholder="Digite o nome"
+                        value={novoMembroOutraLocalidade.nome}
+                        onChange={(e) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, nome: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Localidade</Label>
+                      <Input
+                        placeholder="Digite a localidade"
+                        value={novoMembroOutraLocalidade.localidade}
+                        onChange={(e) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, localidade: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (novoMembroOutraLocalidade.nome && novoMembroOutraLocalidade.localidade) {
+                            setForm({
+                              ...form,
+                              membrosOutrasLocalidades: [...form.membrosOutrasLocalidades, novoMembroOutraLocalidade],
+                            });
+                            setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        + Adicionar Irmão
+                      </Button>
+                    </div>
+                    {form.membrosOutrasLocalidades.length > 0 && (
+                      <div className="col-span-2 space-y-2">
+                        {form.membrosOutrasLocalidades.map((m, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
+                            <div>
+                              <span className="font-medium">{m.nome}</span>
+                              <span className="text-muted-foreground"> - {m.localidade}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setForm({
+                                ...form,
+                                membrosOutrasLocalidades: form.membrosOutrasLocalidades.filter((_, i) => i !== idx),
+                              })}
+                              className="text-destructive hover:text-destructive/80"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div>
@@ -244,6 +322,11 @@ export default function Reforcos() {
                           {nome}
                         </span>
                     ))}
+                    {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
+                      <span key={`outro-${idx}`} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
+                        {m.nome} ({m.localidade})
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
@@ -291,6 +374,11 @@ export default function Reforcos() {
                                 {nome}
                               </span>
                             ))}
+                          {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
+                            <span key={`outro-${idx}`} className="rounded bg-primary/10 px-1.5 py-0.5 text-primary text-xs">
+                              {m.nome} ({m.localidade})
+                            </span>
+                          ))}
                         </div>
                       </div>
                     )}
