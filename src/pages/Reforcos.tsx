@@ -208,7 +208,11 @@ export default function Reforcos() {
                     <SelectContent>
                       {[...congregacoes]
                         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                        .map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome.toLowerCase().includes('central') ? `${c.nome} (${c.cidade})` : c.nome}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
