@@ -61,7 +61,7 @@ export interface Evento {
   id: string;
   titulo: string;
   data: string;
-  tipo: 'Culto' | 'RJM' | 'Ensaio' | 'Reunião' | 'Outro';
+  tipo: 'Culto' | 'RJM' | 'Ensaio' | 'Reunião' | 'Jovens' | 'Outro';
   congregacaoId?: string;
   descricao?: string;
 }

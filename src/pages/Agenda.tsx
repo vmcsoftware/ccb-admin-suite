@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
-const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Outro'];
+const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Jovens', 'Outro'];
 
 const tiposReunioes = [
   'Reuniões',
@@ -40,6 +40,7 @@ const tipoCor: Record<Evento['tipo'], string> = {
   RJM: 'bg-accent/20 text-accent-foreground border-accent/30',
   Ensaio: 'bg-success/10 text-success border-success/20',
   Reunião: 'bg-warning/20 text-warning-foreground border-warning/30',
+  Jovens: 'bg-violet/10 text-violet border-violet/20',
   Outro: 'bg-muted text-muted-foreground border-border',
 };
 
@@ -134,7 +135,11 @@ export default function Agenda() {
                     <SelectContent>
                       {[...congregacoes]
                         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                        .map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome.toLowerCase().includes('central') ? `${c.nome} (${c.cidade})` : c.nome}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
