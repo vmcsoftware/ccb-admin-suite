@@ -61,9 +61,21 @@ export interface Evento {
   id: string;
   titulo: string;
   data: string;
+  horario?: string; // 'HH:mm'
   tipo: 'Culto' | 'RJM' | 'Ensaio' | 'Reunião' | 'Jovens' | 'Outro';
+  subtipoReuniao?: string; // Para tipos específicos de reunião
   congregacaoId?: string;
   descricao?: string;
+  // Campos para Batismo
+  anciaoAtende?: string; // Nome do ancião
+  anciaoLocalidade?: string; // Localidade do ancião
+  // Campos para Ensaio Regional
+  encarregadoRegional?: string; // Nome do encarregado regional
+  encarregadoLocalidade?: string; // Localidade do encarregado
+  // Campos para Santa Ceia
+  diaconoResponsavel?: string; // Nome do diácono responsável
+  diaconoAuxiliar?: string; // Nome do diácono auxiliar
+  responsavelContagem?: string; // Responsável pela contagem
 }
 
 export interface Reforco {

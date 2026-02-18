@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Calendar as CalIcon } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalIcon, Eye } from 'lucide-react';
 import { useEventos, useCongregacoes } from '@/hooks/useData';
 import { Evento } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -50,11 +50,41 @@ export default function Agenda() {
   const { eventos, adicionar, remover } = useEventos();
   const { congregacoes } = useCongregacoes();
   const [open, setOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
   const [subtipoReunioes, setSubtipoReunioes] = useState('');
-  const [form, setForm] = useState({ titulo: '', data: '', tipo: 'Culto' as Evento['tipo'], congregacaoId: '', descricao: '' });
+  const [form, setForm] = useState({
+    titulo: '',
+    data: '',
+    horario: '',
+    tipo: 'Culto' as Evento['tipo'],
+    congregacaoId: '',
+    descricao: '',
+    anciaoAtende: '',
+    anciaoLocalidade: '',
+    encarregadoRegional: '',
+    encarregadoLocalidade: '',
+    diaconoResponsavel: '',
+    diaconoAuxiliar: '',
+    responsavelContagem: '',
+  });
 
   const abrirComTipoReunioes = (tipoReuniao: string) => {
-    setForm({ titulo: '', data: '', tipo: 'Reunião', congregacaoId: '', descricao: '' });
+    setForm({
+      titulo: '',
+      data: '',
+      horario: '',
+      tipo: 'Reunião',
+      congregacaoId: '',
+      descricao: '',
+      anciaoAtende: '',
+      anciaoLocalidade: '',
+      encarregadoRegional: '',
+      encarregadoLocalidade: '',
+      diaconoResponsavel: '',
+      diaconoAuxiliar: '',
+      responsavelContagem: '',
+    });
     setSubtipoReunioes(tipoReuniao);
     setOpen(true);
   };
@@ -66,8 +96,22 @@ export default function Agenda() {
       titulo = subtipoReunioes;
     }
     if (!titulo || !form.data) return;
-    adicionar({ ...form, titulo });
-    setForm({ titulo: '', data: '', tipo: 'Culto', congregacaoId: '', descricao: '' });
+    adicionar({ ...form, titulo, subtipoReuniao: subtipoReunioes });
+    setForm({
+      titulo: '',
+      data: '',
+      horario: '',
+      tipo: 'Culto',
+      congregacaoId: '',
+      descricao: '',
+      anciaoAtende: '',
+      anciaoLocalidade: '',
+      encarregadoRegional: '',
+      encarregadoLocalidade: '',
+      diaconoResponsavel: '',
+      diaconoAuxiliar: '',
+      responsavelContagem: '',
+    });
     setSubtipoReunioes('');
     setOpen(false);
   };
@@ -84,14 +128,28 @@ export default function Agenda() {
         <Dialog open={open} onOpenChange={(isOpen) => {
           setOpen(isOpen);
           if (!isOpen) {
-            setForm({ titulo: '', data: '', tipo: 'Culto', congregacaoId: '', descricao: '' });
+            setForm({
+              titulo: '',
+              data: '',
+              horario: '',
+              tipo: 'Culto',
+              congregacaoId: '',
+              descricao: '',
+              anciaoAtende: '',
+              anciaoLocalidade: '',
+              encarregadoRegional: '',
+              encarregadoLocalidade: '',
+              diaconoResponsavel: '',
+              diaconoAuxiliar: '',
+              responsavelContagem: '',
+            });
             setSubtipoReunioes('');
           }
         }}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Evento</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-display">Novo Evento</DialogTitle>
             </DialogHeader>
@@ -105,6 +163,12 @@ export default function Agenda() {
                   <Label>Data</Label>
                   <Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} />
                 </div>
+                <div>
+                  <Label>Horário (opcional)</Label>
+                  <Input type="time" value={form.horario} onChange={(e) => setForm({ ...form, horario: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Tipo</Label>
                   <Select value={form.tipo} onValueChange={(v) => {
@@ -146,6 +210,79 @@ export default function Agenda() {
                   </Select>
                 </div>
               )}
+              {subtipoReunioes === 'Batismo' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados do Batismo</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Ancião</Label>
+                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
+                    </div>
+                    <div>
+                      <Label>Localidade do Ancião</Label>
+                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                    </div>
+                  </div>
+                </>
+              )}
+              {subtipoReunioes === 'Ensaio Regional' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados do Ensaio Regional</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Ancião</Label>
+                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
+                    </div>
+                    <div>
+                      <Label>Localidade do Ancião</Label>
+                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Encarregado Regional</Label>
+                      <Input value={form.encarregadoRegional} onChange={(e) => setForm({ ...form, encarregadoRegional: e.target.value })} placeholder="Nome" />
+                    </div>
+                    <div>
+                      <Label>Localidade do Encarregado</Label>
+                      <Input value={form.encarregadoLocalidade} onChange={(e) => setForm({ ...form, encarregadoLocalidade: e.target.value })} placeholder="Local" />
+                    </div>
+                  </div>
+                </>
+              )}
+              {subtipoReunioes === 'Santa-Ceia' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da Santa Ceia</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Ancião</Label>
+                      <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Nome do ancião" />
+                    </div>
+                    <div>
+                      <Label>Localidade do Ancião</Label>
+                      <Input value={form.anciaoLocalidade} onChange={(e) => setForm({ ...form, anciaoLocalidade: e.target.value })} placeholder="Local" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Diácono Responsável</Label>
+                    <Input value={form.diaconoResponsavel} onChange={(e) => setForm({ ...form, diaconoResponsavel: e.target.value })} placeholder="Nome" />
+                  </div>
+                  <div>
+                    <Label>Diácono Auxiliar</Label>
+                    <Input value={form.diaconoAuxiliar} onChange={(e) => setForm({ ...form, diaconoAuxiliar: e.target.value })} placeholder="Nome" />
+                  </div>
+                  <div>
+                    <Label>Responsável pela Contagem</Label>
+                    <Input value={form.responsavelContagem} onChange={(e) => setForm({ ...form, responsavelContagem: e.target.value })} placeholder="Nome" />
+                  </div>
+                </>
+              )}
               <div>
                 <Label>Descrição</Label>
                 <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Opcional" />
@@ -171,6 +308,69 @@ export default function Agenda() {
         ))}
       </div>
 
+      {/* Modal de Visualização de Detalhes */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">{selectedEvent?.subtipoReuniao || selectedEvent?.titulo}</DialogTitle>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Data</p>
+                <p className="font-medium">{new Date(selectedEvent.data + 'T12:00:00').toLocaleDateString('pt-BR')} {selectedEvent.horario && `às ${selectedEvent.horario}`}</p>
+              </div>
+              {selectedEvent.titulo && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Título</p>
+                  <p className="font-medium">{selectedEvent.titulo}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">Tipo</p>
+                <Badge className={tipoCor[selectedEvent.tipo]}>{selectedEvent.tipo}</Badge>
+              </div>
+              {selectedEvent.anciaoAtende && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Ancião</p>
+                  <p className="font-medium">{selectedEvent.anciaoAtende} {selectedEvent.anciaoLocalidade && `(${selectedEvent.anciaoLocalidade})`}</p>
+                </div>
+              )}
+              {selectedEvent.encarregadoRegional && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Encarregado Regional</p>
+                  <p className="font-medium">{selectedEvent.encarregadoRegional} {selectedEvent.encarregadoLocalidade && `(${selectedEvent.encarregadoLocalidade})`}</p>
+                </div>
+              )}
+              {selectedEvent.diaconoResponsavel && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Diácono Responsável</p>
+                  <p className="font-medium">{selectedEvent.diaconoResponsavel}</p>
+                </div>
+              )}
+              {selectedEvent.diaconoAuxiliar && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Diácono Auxiliar</p>
+                  <p className="font-medium">{selectedEvent.diaconoAuxiliar}</p>
+                </div>
+              )}
+              {selectedEvent.responsavelContagem && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Responsável pela Contagem</p>
+                  <p className="font-medium">{selectedEvent.responsavelContagem}</p>
+                </div>
+              )}
+              {selectedEvent.descricao && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Descrição</p>
+                  <p className="font-medium">{selectedEvent.descricao}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {sorted.length === 0 ? (
         <div className="glass-card rounded-xl p-12 text-center">
           <CalIcon className="mx-auto h-10 w-10 text-muted-foreground/40" />
@@ -179,26 +379,50 @@ export default function Agenda() {
       ) : (
         <div className="space-y-3">
           {sorted.map((ev) => (
-            <div key={ev.id} className="glass-card stat-card-hover rounded-xl p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="text-center min-w-[50px]">
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase()}
-                  </p>
-                  <p className="text-xl font-bold text-foreground">
-                    {new Date(ev.data + 'T12:00:00').getDate()}
-                  </p>
+            <div key={ev.id} className="glass-card stat-card-hover rounded-xl p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="text-center min-w-[50px] flex-shrink-0">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase()}
+                    </p>
+                    <p className="text-xl font-bold text-foreground">
+                      {new Date(ev.data + 'T12:00:00').getDate()}
+                    </p>
+                  </div>
+                  <div className="flex-1">
+                    {ev.subtipoReuniao && (
+                      <p className="font-semibold text-foreground text-lg">{ev.subtipoReuniao}</p>
+                    )}
+                    {ev.titulo && (
+                      <p className="text-sm text-muted-foreground">{ev.titulo}</p>
+                    )}
+                    {ev.horario && (
+                      <p className="text-xs text-muted-foreground mt-1">🕐 {ev.horario}</p>
+                    )}
+                    {ev.descricao && (
+                      <p className="text-xs text-muted-foreground mt-1">{ev.descricao}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">{ev.titulo}</p>
-                  {ev.descricao && <p className="text-xs text-muted-foreground">{ev.descricao}</p>}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setSelectedEvent(ev);
+                      setViewModalOpen(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                    title="Visualizar detalhes"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => remover(ev.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant="outline" className={tipoCor[ev.tipo]}>{ev.tipo}</Badge>
-                <button onClick={() => remover(ev.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </div>
             </div>
           ))}
