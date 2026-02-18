@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useReforcos, useCongregacoes, useMembros } from '@/hooks/useData';
-import { Reforco } from '@/types';
+import { Reforco, TipoMinisterio } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,13 +31,13 @@ export default function Reforcos() {
   const [open, setOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
-  const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '' });
+  const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
   const [form, setForm] = useState({
     data: '',
     tipo: 'Culto' as Reforco['tipo'],
     congregacaoId: '',
     membros: [] as string[],
-    membrosOutrasLocalidades: [] as Array<{ nome: string; localidade: string }>,
+    membrosOutrasLocalidades: [] as Array<{ nome: string; localidade: string; ministerio: TipoMinisterio }>,
     observacoes: '',
   });
 
@@ -55,20 +55,31 @@ export default function Reforcos() {
     const selectedDate = new Date(data + 'T12:00:00');
     const selectedMonth = selectedDate.getMonth();
     const selectedYear = selectedDate.getFullYear();
+    const dayOfWeek = selectedDate.getDay(); // 0 = domingo, 4 = quinta-feira
+    const isFifthDay = dayOfWeek === 4; // quinta-feira
 
-    const conflicting = reforcos.find((r) => {
-      const reforcoDate = new Date(r.data + 'T12:00:00');
-      return (
-        reforcoDate.getMonth() === selectedMonth &&
-        reforcoDate.getFullYear() === selectedYear &&
-        r.tipo === tipo &&
-        r.congregacaoId === congregacaoId
-      );
-    });
+    // Obter a congregação
+    const cong = congregacoes.find((c) => c.id === congregacaoId);
+    const isCentral = cong?.nome.toLowerCase().includes('central') && cong?.cidade === 'Ituiutaba';
 
-    if (conflicting) {
-      const congNome = congregacoes.find((c) => c.id === congregacaoId)?.nome || 'Congregação';
-      return `Já existe um reforço de ${tipo} para ${congNome} em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas um reforço por tipo de culto por mês é permitido.`;
+    // Regra especial: Permitir múltiplos reforços apenas na Central de Ituiutaba para quinta-feira
+    const allowMultiple = isCentral && isFifthDay;
+
+    if (!allowMultiple) {
+      const conflicting = reforcos.find((r) => {
+        const reforcoDate = new Date(r.data + 'T12:00:00');
+        return (
+          reforcoDate.getMonth() === selectedMonth &&
+          reforcoDate.getFullYear() === selectedYear &&
+          r.tipo === tipo &&
+          r.congregacaoId === congregacaoId
+        );
+      });
+
+      if (conflicting) {
+        const congNome = cong?.nome || 'Congregação';
+        return `Já existe um reforço de ${tipo} para ${congNome} em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas um reforço por tipo de culto por mês é permitido.`;
+      }
     }
 
     return null;
@@ -88,7 +99,7 @@ export default function Reforcos() {
     adicionar(form);
     setForm({ data: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
     setShowOutraLocalidade(false);
-    setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
+    setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
     setOpen(false);
   };
 
@@ -116,7 +127,7 @@ export default function Reforcos() {
             if (!isOpen) {
               setValidationError(null);
               setShowOutraLocalidade(false);
-              setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
+              setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
             }
           }}>
             <DialogTrigger asChild>
@@ -225,6 +236,21 @@ export default function Reforcos() {
                       />
                     </div>
                     <div className="col-span-2">
+                      <Label className="text-sm">Ministério</Label>
+                      <Select 
+                        value={novoMembroOutraLocalidade.ministerio} 
+                        onValueChange={(v) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, ministerio: v as TipoMinisterio })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Ancião">Ancião</SelectItem>
+                          <SelectItem value="Diácono">Diácono</SelectItem>
+                          <SelectItem value="Cooperador do Ofício">Cooperador do Ofício</SelectItem>
+                          <SelectItem value="Cooperador de Jovens e Menores">Cooperador de Jovens e Menores</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
                       <Button
                         type="button"
                         size="sm"
@@ -235,7 +261,7 @@ export default function Reforcos() {
                               ...form,
                               membrosOutrasLocalidades: [...form.membrosOutrasLocalidades, novoMembroOutraLocalidade],
                             });
-                            setNovoMembroOutraLocalidade({ nome: '', localidade: '' });
+                            setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
                           }
                         }}
                         className="w-full"
@@ -249,7 +275,7 @@ export default function Reforcos() {
                           <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
                             <div>
                               <span className="font-medium">{m.nome}</span>
-                              <span className="text-muted-foreground"> - {m.localidade}</span>
+                              <span className="text-muted-foreground"> - {m.localidade} ({m.ministerio})</span>
                             </div>
                             <button
                               type="button"
@@ -324,7 +350,7 @@ export default function Reforcos() {
                     ))}
                     {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
                       <span key={`outro-${idx}`} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
-                        {m.nome} ({m.localidade})
+                        {m.nome} ({m.localidade} - {m.ministerio})
                       </span>
                     ))}
                   </div>
@@ -376,7 +402,7 @@ export default function Reforcos() {
                             ))}
                           {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
                             <span key={`outro-${idx}`} className="rounded bg-primary/10 px-1.5 py-0.5 text-primary text-xs">
-                              {m.nome} ({m.localidade})
+                              {m.nome} ({m.localidade} - {m.ministerio})
                             </span>
                           ))}
                         </div>
