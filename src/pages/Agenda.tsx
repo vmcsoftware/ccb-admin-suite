@@ -32,6 +32,8 @@ const tiposReunioes = [
   'Reunião Setorial',
   'Reunião Ministerial',
   'Reunião Extra',
+  'Culto para Jovens',
+  'Ensaio Regional',
   'Ordenação'
 ];
 
