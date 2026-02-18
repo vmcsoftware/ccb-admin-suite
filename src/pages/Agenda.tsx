@@ -251,9 +251,12 @@ export default function Agenda() {
                           <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
                             <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
                             <SelectContent>
-                              {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                              ))}
+                              {[...membros]
+                                .filter((m) => m.ministerio === 'Ancião')
+                                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                                .map((m) => (
+                                  <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </>
@@ -280,9 +283,12 @@ export default function Agenda() {
                         <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
                           <SelectContent>
-                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                            ))}
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
@@ -301,9 +307,12 @@ export default function Agenda() {
                         <Select value={form.encarregadoRegional} onValueChange={(v) => setForm({ ...form, encarregadoRegional: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione um encarregado" /></SelectTrigger>
                           <SelectContent>
-                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                            ))}
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
@@ -329,9 +338,12 @@ export default function Agenda() {
                         <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
                           <SelectContent>
-                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                            ))}
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
@@ -350,9 +362,12 @@ export default function Agenda() {
                         <Select value={form.diaconoResponsavel} onValueChange={(v) => setForm({ ...form, diaconoResponsavel: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione um diácono" /></SelectTrigger>
                           <SelectContent>
-                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                            ))}
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Diácono')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
@@ -371,9 +386,12 @@ export default function Agenda() {
                         <Select value={form.diaconoAuxiliar} onValueChange={(v) => setForm({ ...form, diaconoAuxiliar: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione um diácono" /></SelectTrigger>
                           <SelectContent>
-                            {[...membros].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                            ))}
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Diácono')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       ) : (
