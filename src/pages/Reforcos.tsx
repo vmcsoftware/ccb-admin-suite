@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, ShieldCheck, AlertCircle, Edit2 } from 'lucide-react';
 import { useReforcos, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Reforco, TipoMinisterio } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export default function Reforcos() {
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const [open, setOpen] = useState(false);
+  const [editingReforcoId, setEditingReforcoId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
   const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
@@ -98,11 +99,32 @@ export default function Reforcos() {
     }
 
     setValidationError(null);
+    
+    // Se está editando, deletar o antigo e adicionar o novo
+    if (editingReforcoId) {
+      remover(editingReforcoId);
+    }
+    
     adicionar(form);
     setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
     setShowOutraLocalidade(false);
     setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
+    setEditingReforcoId(null);
     setOpen(false);
+  };
+
+  const handleEdit = (reforco: Reforco) => {
+    setEditingReforcoId(reforco.id);
+    setForm({
+      data: reforco.data,
+      horario: reforco.horario || '',
+      tipo: reforco.tipo,
+      congregacaoId: reforco.congregacaoId,
+      membros: reforco.membros || [],
+      membrosOutrasLocalidades: reforco.membrosOutrasLocalidades || [],
+      observacoes: reforco.observacoes || '',
+    });
+    setOpen(true);
   };
 
   const getCongNome = (id: string) => congregacoes.find((c) => c.id === id)?.nome || '—';
@@ -141,6 +163,7 @@ export default function Reforcos() {
               setShowOutraLocalidade(false);
               setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
               setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
+              setEditingReforcoId(null);
             }
           }}>
             <DialogTrigger asChild>
@@ -148,6 +171,7 @@ export default function Reforcos() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
               <DialogHeader>
+                <DialogTitle className="font-display">{editingReforcoId ? 'Editar Reforço' : 'Novo Reforço'}</DialogTitle>
                 <DialogTitle className="font-display">Novo Reforço</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -405,9 +429,14 @@ export default function Reforcos() {
                       {r.observacoes && <p className="italic">{r.observacoes}</p>}
                     </div>
                   </div>
-                  <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEdit(r)} className="text-muted-foreground hover:text-primary transition-colors p-1 flex-shrink-0" title="Editar reforço">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0" title="Deletar reforço">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 {(r.membros.length > 0 || (r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0)) && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
