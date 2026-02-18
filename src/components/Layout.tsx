@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Menu,
   X,
+  Music,
 } from 'lucide-react';
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
   { path: '/congregacoes', label: 'Congregações', icon: Church },
   { path: '/ministerio', label: 'Ministério', icon: Users },
   { path: '/agenda', label: 'Agenda', icon: Calendar },
+  { path: '/ensaios', label: 'Ensaios', icon: Music },
   { path: '/reforcos', label: 'Reforços', icon: ShieldCheck },
   { path: '/listas', label: 'Listas', icon: FileText },
 ];

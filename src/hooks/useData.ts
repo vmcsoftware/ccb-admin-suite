@@ -10,7 +10,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Congregacao, Membro, Evento, Reforco } from '@/types';
+import { Congregacao, Membro, Evento, Reforco, Ensaio } from '@/types';
 
 function useFirestoreCollection<T extends { id: string }>(collectionName: string) {
   const [items, setItems] = useState<T[]>([]);
@@ -63,4 +63,10 @@ export function useReforcos() {
   const { items: reforcos, loading, adicionar, remover } =
     useFirestoreCollection<Reforco>('reforcos');
   return { reforcos, loading, adicionar, remover };
+}
+
+export function useEnsaios() {
+  const { items: ensaios, loading, adicionar, remover, atualizar } =
+    useFirestoreCollection<Ensaio>('ensaios');
+  return { ensaios, loading, adicionar, remover, atualizar };
 }
