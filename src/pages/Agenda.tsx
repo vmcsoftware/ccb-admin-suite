@@ -271,6 +271,130 @@ export default function Agenda() {
                   </div>
                 </>
               )}
+              {subtipoReunioes === 'Reunião para Mocidade' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da Reunião para Mocidade</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+              {subtipoReunioes === 'Busca dos Dons' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da Busca dos Dons</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+              {subtipoReunioes === 'Ordenação' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da Ordenação</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+              {subtipoReunioes === 'Culto para Jovens' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados do Culto para Jovens</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
               {subtipoReunioes === 'Ensaio Regional' && (
                 <>
                   <div className="border-t border-border pt-4">
