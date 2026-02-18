@@ -32,8 +32,10 @@ export default function Reforcos() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
   const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
+  const [filterTipo, setFilterTipo] = useState<'Culto' | 'RJM' | 'Todos'>('Todos');
   const [form, setForm] = useState({
     data: '',
+    horario: '',
     tipo: 'Culto' as Reforco['tipo'],
     congregacaoId: '',
     membros: [] as string[],
@@ -97,7 +99,7 @@ export default function Reforcos() {
 
     setValidationError(null);
     adicionar(form);
-    setForm({ data: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
+    setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
     setShowOutraLocalidade(false);
     setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
     setOpen(false);
@@ -106,8 +108,18 @@ export default function Reforcos() {
   const getCongNome = (id: string) => congregacoes.find((c) => c.id === id)?.nome || '—';
   const getMembroNome = (id: string) => membros.find((m) => m.id === id)?.nome || '—';
 
+  const getDiaSemana = (data: string) => {
+    const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return dias[new Date(data + 'T12:00:00').getDay()];
+  };
+
+  // Filtrar reforços por tipo
+  const reforcosFiltrados = filterTipo === 'Todos' 
+    ? reforcos 
+    : reforcos.filter(r => r.tipo === filterTipo);
+
   // Ordenar reforços por data e depois por congregação
-  const reforçosOrdenados = [...reforcos]
+  const reforçosOrdenados = [...reforcosFiltrados]
     .sort((a, b) => {
       const dateCmp = new Date(a.data).getTime() - new Date(b.data).getTime();
       if (dateCmp !== 0) return dateCmp;
@@ -128,6 +140,7 @@ export default function Reforcos() {
               setValidationError(null);
               setShowOutraLocalidade(false);
               setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
+              setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
             }
           }}>
             <DialogTrigger asChild>
@@ -157,24 +170,33 @@ export default function Reforcos() {
                     />
                   </div>
                   <div>
-                    <Label>Tipo</Label>
-                    <Select 
-                      value={form.tipo} 
-                      onValueChange={(v) => {
-                        setForm({ ...form, tipo: v as Reforco['tipo'] });
-                        setValidationError(null);
-                      }}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Culto">Culto</SelectItem>
-                        <SelectItem value="RJM">RJM</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Horário</Label>
+                    <Input 
+                      type="time" 
+                      value={form.horario} 
+                      onChange={(e) => {
+                        setForm({ ...form, horario: e.target.value });
+                      }} 
+                    />
                   </div>
                 </div>
                 <div>
-                  <Label>Congregação</Label>
+                  <Label>Tipo</Label>
+                  <Select 
+                    value={form.tipo} 
+                    onValueChange={(v) => {
+                      setForm({ ...form, tipo: v as Reforco['tipo'] });
+                      setValidationError(null);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Culto">Culto</SelectItem>
+                      <SelectItem value="RJM">RJM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Select 
                     value={form.congregacaoId} 
                     onValueChange={(v) => {
@@ -305,7 +327,24 @@ export default function Reforcos() {
           </Dialog>
         </div>
 
-        {reforcos.length === 0 ? (
+        {/* Filtros */}
+        <div className="flex gap-2">
+          {(['Todos', 'Culto', 'RJM'] as const).map((tipo) => (
+            <button
+              key={tipo}
+              onClick={() => setFilterTipo(tipo as any)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filterTipo === tipo
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {tipo}
+            </button>
+          ))}
+        </div>
+
+        {reforçosOrdenados.length === 0 ? (
           <div className="glass-card rounded-xl p-12 text-center">
             <ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground/40" />
             <p className="mt-4 text-muted-foreground">Nenhum reforço agendado.</p>
@@ -314,31 +353,29 @@ export default function Reforcos() {
           <div className="space-y-3">
             {reforçosOrdenados.map((r) => (
               <div key={r.id} className="glass-card stat-card-hover rounded-xl p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[50px]">
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase()}
-                      </p>
-                      <p className="text-xl font-bold text-foreground">
-                        {new Date(r.data + 'T12:00:00').getDate()}
-                      </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Badge variant="outline" className={r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}>
+                        {r.tipo}
+                      </Badge>
+                      <span className="text-sm font-medium text-foreground">{getCongNome(r.congregacaoId)}</span>
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">{getCongNome(r.congregacaoId)}</p>
-                      {r.observacoes && <p className="text-xs text-muted-foreground">{r.observacoes}</p>}
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>
+                        <span className="font-medium">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                        {' • '}
+                        <span>{getDiaSemana(r.data)}</span>
+                        {r.horario && (' • ' + r.horario)}
+                      </p>
+                      {r.observacoes && <p className="italic">{r.observacoes}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}>
-                      {r.tipo}
-                    </Badge>
-                    <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                {r.membros.length > 0 && (
+                {(r.membros.length > 0 || (r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0)) && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {[...r.membros]
                       .map((mid) => ({ mid, nome: getMembroNome(mid) }))
@@ -365,7 +402,7 @@ export default function Reforcos() {
       <div className="w-96 hidden xl:block">
         <Card className="sticky top-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Reforços Agendados</CardTitle>
+            <CardTitle className="text-sm font-semibold">Reforços Agendados - {filterTipo}</CardTitle>
           </CardHeader>
           <CardContent>
             {reforçosOrdenados.length === 0 ? (
@@ -374,23 +411,29 @@ export default function Reforcos() {
               <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
                 {reforçosOrdenados.map((r) => (
                   <div key={r.id} className="border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">
-                        {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">
+                          {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {getDiaSemana(r.data)}
+                          {r.horario && (' • ' + r.horario)}
+                        </div>
+                      </div>
                       <Badge 
                         variant="outline" 
-                        className={`text-xs ${r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}`}
+                        className={`text-xs flex-shrink-0 ${r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}`}
                       >
                         {r.tipo}
                       </Badge>
                     </div>
-                    <div className="text-muted-foreground">
+                    <div className="text-muted-foreground font-medium">
                       {getCongNome(r.congregacaoId)}
                     </div>
-                    {r.membros.length > 0 && (
+                    {(r.membros.length > 0 || (r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0)) && (
                       <div className="pt-1.5 border-t border-border">
-                        <p className="text-muted-foreground text-xs font-medium mb-1">Escalados:</p>
+                        <p className="text-muted-foreground font-medium mb-1">Irmãos:</p>
                         <div className="flex flex-wrap gap-1">
                           {[...r.membros]
                             .map((mid) => ({ mid, nome: getMembroNome(mid) }))
@@ -409,7 +452,7 @@ export default function Reforcos() {
                       </div>
                     )}
                     {r.observacoes && (
-                      <div className="pt-1.5 border-t border-border text-muted-foreground italic">
+                      <div className="pt-1.5 border-t border-border text-muted-foreground italic text-xs">
                         {r.observacoes}
                       </div>
                     )}

@@ -50,6 +50,12 @@ export default function Agenda() {
   const [subtipoReunioes, setSubtipoReunioes] = useState('');
   const [form, setForm] = useState({ titulo: '', data: '', tipo: 'Culto' as Evento['tipo'], congregacaoId: '', descricao: '' });
 
+  const abrirComTipoReunioes = (tipoReuniao: string) => {
+    setForm({ titulo: '', data: '', tipo: 'Reunião', congregacaoId: '', descricao: '' });
+    setSubtipoReunioes(tipoReuniao);
+    setOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let titulo = form.titulo;
@@ -72,7 +78,13 @@ export default function Agenda() {
           <h1 className="text-2xl font-bold font-display text-foreground">Agenda</h1>
           <p className="text-sm text-muted-foreground mt-1">Eventos e programações</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            setForm({ titulo: '', data: '', tipo: 'Culto', congregacaoId: '', descricao: '' });
+            setSubtipoReunioes('');
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Evento</Button>
           </DialogTrigger>
@@ -137,6 +149,19 @@ export default function Agenda() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Botões de Tipos de Reuniões */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {tiposReunioes.map((tipo) => (
+          <button
+            key={tipo}
+            onClick={() => abrirComTipoReunioes(tipo)}
+            className="px-3 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent-foreground border border-accent/30 transition-colors text-sm font-medium"
+          >
+            {tipo}
+          </button>
+        ))}
       </div>
 
       {sorted.length === 0 ? (

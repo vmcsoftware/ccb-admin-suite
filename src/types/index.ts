@@ -69,6 +69,7 @@ export interface Evento {
 export interface Reforco {
   id: string;
   data: string;
+  horario?: string; // 'HH:mm'
   tipo: 'Culto' | 'RJM';
   congregacaoId: string;
   membros: string[];
