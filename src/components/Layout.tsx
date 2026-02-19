@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   Music,
   BarChart3,
+  Trophy,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { path: '/ensaios', label: 'Ensaios', icon: Music },
   { path: '/reforcos', label: 'Reforços', icon: ShieldCheck },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
+  { path: '/resultados', label: 'Resultados', icon: Trophy },
   { path: '/listas', label: 'Listas', icon: FileText },
 ];
 

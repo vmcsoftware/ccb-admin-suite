@@ -110,3 +110,39 @@ export interface Ensaio {
   ativo: boolean;
   criadoEm?: string;
 }
+
+// Tipos para Resultados
+export interface ResultadoBatismo {
+  id: string;
+  data: string;
+  congregacaoId: string;
+  irmaos: number;
+  irmas: number;
+  observacoes?: string;
+}
+
+export interface ResultadoSantaCeia {
+  id: string;
+  data: string;
+  congregacaoId: string;
+  irmaos: number;
+  irmas: number;
+  observacoes?: string;
+}
+
+export interface MusicoEnsaioRegional {
+  id: string;
+  nome: string;
+  instrumento: string;
+  localidade?: string;
+}
+
+export interface ResultadoEnsaioRegional {
+  id: string;
+  data: string;
+  titulo: string;
+  local: string;
+  musicos: MusicoEnsaioRegional[];
+  organistas: number;
+  observacoes?: string;
+}

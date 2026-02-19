@@ -10,7 +10,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Congregacao, Membro, Evento, Reforco, Ensaio } from '@/types';
+import { Congregacao, Membro, Evento, Reforco, Ensaio, ResultadoBatismo, ResultadoSantaCeia, ResultadoEnsaioRegional } from '@/types';
 
 /**
  * Normaliza dados de Congregacao do formato antigo para o novo
@@ -139,4 +139,22 @@ export function useEnsaios() {
   const { items: ensaios, loading, adicionar, remover, atualizar } =
     useFirestoreCollection<Ensaio>('ensaios');
   return { ensaios, loading, adicionar, remover, atualizar };
+}
+
+export function useResultadosBatismo() {
+  const { items: resultados, loading, adicionar, remover, atualizar } =
+    useFirestoreCollection<ResultadoBatismo>('resultadosBatismo');
+  return { resultados, loading, adicionar, remover, atualizar };
+}
+
+export function useResultadosSantaCeia() {
+  const { items: resultados, loading, adicionar, remover, atualizar } =
+    useFirestoreCollection<ResultadoSantaCeia>('resultadosSantaCeia');
+  return { resultados, loading, adicionar, remover, atualizar };
+}
+
+export function useResultadosEnsaioRegional() {
+  const { items: resultados, loading, adicionar, remover, atualizar } =
+    useFirestoreCollection<ResultadoEnsaioRegional>('resultadosEnsaioRegional');
+  return { resultados, loading, adicionar, remover, atualizar };
 }
