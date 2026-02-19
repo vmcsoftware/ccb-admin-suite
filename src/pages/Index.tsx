@@ -1,4 +1,4 @@
-import { Church, Users, Calendar, ShieldCheck } from 'lucide-react';
+import { Building2, Users, Calendar, ShieldCheck } from 'lucide-react';
 import { useCongregacoes, useMembros, useEventos, useReforcos } from '@/hooks/useData';
 
 export default function Dashboard() {
@@ -8,7 +8,7 @@ export default function Dashboard() {
   const { reforcos } = useReforcos();
 
   const stats = [
-    { label: 'Congregações', value: congregacoes.length, icon: Church, color: 'text-primary' },
+    { label: 'Congregações', value: congregacoes.length, icon: Building2, color: 'text-primary' },
     { label: 'Ministério', value: membros.length, icon: Users, color: 'text-accent' },
     { label: 'Eventos', value: eventos.length, icon: Calendar, color: 'text-success' },
     { label: 'Reforços', value: reforcos.length, icon: ShieldCheck, color: 'text-warning' },
@@ -51,7 +51,7 @@ export default function Dashboard() {
         <div className="glass-card rounded-xl p-10 text-center border-2 border-dashed border-border/50">
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-accent/10 p-4">
-              <Church className="h-10 w-10 text-accent" />
+              <Building2 className="h-10 w-10 text-accent" />
             </div>
           </div>
           <h3 className="mt-4 text-xl font-semibold font-display text-foreground">

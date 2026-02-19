@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Church,
+  Building2,
   Users,
   Calendar,
   ShieldCheck,
@@ -16,7 +16,7 @@ import {
 
 const navItems = [
   { path: '/', label: 'Painel', icon: LayoutDashboard },
-  { path: '/congregacoes', label: 'Congregações', icon: Church },
+  { path: '/congregacoes', label: 'Congregações', icon: Building2 },
   { path: '/ministerio', label: 'Ministério', icon: Users },
   { path: '/agenda', label: 'Agenda', icon: Calendar },
   { path: '/ensaios', label: 'Ensaios', icon: Music },
@@ -49,7 +49,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6 bg-sidebar-background/50 backdrop-blur-sm">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sidebar-primary to-yellow-500 shadow-md">
-            <Church className="h-5 w-5 text-sidebar-primary-foreground" />
+            <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
           <div>
             <h1 className="text-sm font-bold text-sidebar-foreground font-sans">
