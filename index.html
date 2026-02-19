@@ -25,6 +25,19 @@
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
+    <script>
+      // GitHub Pages SPA redirect handler
+      // When coming from 404.html, restore the original path
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== window.location.pathname) {
+          var baseHref = '/ccb-admin-suite';
+          var fullPath = baseHref + redirect;
+          window.history.replaceState(null, null, fullPath);
+        }
+      })();
+    </script>
   </body>
 </html>
