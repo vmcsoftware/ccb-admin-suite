@@ -476,71 +476,128 @@ export default function Listas() {
 
         {/* ABA: REUNIÕES */}
         {abaGerenciar === 'reunioes' && (
-          <>
-            {/* Filtro e Botão */}
-            <div className="flex items-center justify-between">
-              <select
-                value={categoriasFiltro}
-                onChange={(e) => setCategoriasFiltro(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="todas">Todas</option>
-                {[...new Set(listaEditando.categorias.map(c => c.nome))].map((nome) => (
-                  <option key={nome} value={nome}>
-                    {nome}
-                  </option>
-                ))}
-              </select>
-              <Button className="gap-2">
-                Nova Categoria
-              </Button>
-            </div>
-
-            {/* Lista de Categorias */}
-            <div className="space-y-2">
-              {categoriasFiltradas.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma categoria adicionada
+          <div className="space-y-6">
+            {/* SEÇÃO: EVENTOS IMPORTADOS */}
+            {eventosReuniao.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">Eventos Agendados Importados</h3>
+                  <Badge variant="secondary">{eventosReuniao.length} eventos</Badge>
                 </div>
-              ) : (
-                categoriasFiltradas.map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded border border-border" />
-                      <span className="font-medium text-foreground">{cat.nome}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => removerCategoria(cat.id)}
-                        className="px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
-                      >
-                        <Trash2 className="h-4 w-4" /> Remover
-                      </button>
-                      <button
-                        className="px-3 py-1.5 rounded text-sm font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
-                      >
-                        <Edit2 className="h-4 w-4" /> Editar
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
 
-            {/* Input Nova Categoria */}
-            <div className="glass-card rounded-xl p-5 space-y-3">
-              <Label className="font-semibold text-foreground">Adicionar Nova Categoria</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={novaCategoriaNome}
-                  onChange={(e) => setNovaCategoriaNome(e.target.value)}
-                  placeholder="Nome da categoria (ex: Batismos)"
-                  onKeyPress={(e) => e.key === 'Enter' && adicionarCategoria()}
-                />
-                <Button onClick={adicionarCategoria}>Adicionar</Button>
+                {[...new Set(eventosReuniao.map(e => e.subtipoReuniao))].sort().map((tipoReuniao) => {
+                  const eventosPorTipo = eventosReuniao.filter(e => e.subtipoReuniao === tipoReuniao);
+                  return (
+                    <div key={tipoReuniao} className="space-y-2">
+                      <h4 className="font-semibold text-sm text-foreground uppercase">{tipoReuniao}</h4>
+                      <div className="glass-card rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-4 py-2 text-left">Data</th>
+                              <th className="px-4 py-2 text-left">Hora</th>
+                              <th className="px-4 py-2 text-left">Localidade</th>
+                              <th className="px-4 py-2 text-left">Responsável</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {eventosPorTipo.map((e) => (
+                              <tr key={e.id} className="border-b border-border hover:bg-muted/30">
+                                <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                <td className="px-4 py-2">{e.horario || '—'}</td>
+                                <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                                <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {eventosReuniao.length === 0 && (
+              <div className="glass-card rounded-xl p-8 text-center">
+                <p className="text-muted-foreground">Nenhum evento agendado para este período.</p>
+              </div>
+            )}
+
+            {/* DIVISOR */}
+            {eventosReuniao.length > 0 && (
+              <div className="border-t border-border pt-6" />
+            )}
+
+            {/* SEÇÃO: GERENCIAMENTO DE CATEGORIAS */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">Categorias da Lista</h3>
+
+              {/* Filtro e Botão */}
+              <div className="flex items-center justify-between">
+                <select
+                  value={categoriasFiltro}
+                  onChange={(e) => setCategoriasFiltro(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="todas">Todas</option>
+                  {[...new Set(listaEditando.categorias.map(c => c.nome))].map((nome) => (
+                    <option key={nome} value={nome}>
+                      {nome}
+                    </option>
+                  ))}
+                </select>
+                <Button className="gap-2">
+                  Nova Categoria
+                </Button>
+              </div>
+
+              {/* Lista de Categorias */}
+              <div className="space-y-2">
+                {categoriasFiltradas.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhuma categoria adicionada
+                  </div>
+                ) : (
+                  categoriasFiltradas.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between p-4 glass-card rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded border border-border" />
+                        <span className="font-medium text-foreground">{cat.nome}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => removerCategoria(cat.id)}
+                          className="px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                        >
+                          <Trash2 className="h-4 w-4" /> Remover
+                        </button>
+                        <button
+                          className="px-3 py-1.5 rounded text-sm font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
+                        >
+                          <Edit2 className="h-4 w-4" /> Editar
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Input Nova Categoria */}
+              <div className="glass-card rounded-xl p-5 space-y-3">
+                <Label className="font-semibold text-foreground">Adicionar Nova Categoria</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={novaCategoriaNome}
+                    onChange={(e) => setNovaCategoriaNome(e.target.value)}
+                    placeholder="Nome da categoria (ex: Batismos)"
+                    onKeyPress={(e) => e.key === 'Enter' && adicionarCategoria()}
+                  />
+                  <Button onClick={adicionarCategoria}>Adicionar</Button>
+                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* ABA: AVISOS */}
