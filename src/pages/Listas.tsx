@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FileText, Download, Settings, Eye, Edit2, Trash2, ArrowLeft, RefreshCw } from 'lucide-react';
+import { FileText, Download, Settings, Eye, Edit2, Trash2, ArrowLeft, RefreshCw, Plus } from 'lucide-react';
 import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,7 +30,9 @@ interface Lista {
   dataInicio?: string;
   dataFim?: string;
   categorias: Categoria[];
-  avisos: Aviso[];
+  avisos?: Aviso[];
+  eventosSelected?: string[];
+  reforcosSelecionados?: string[];
 }
 
 export default function Listas() {
@@ -71,9 +73,11 @@ export default function Listas() {
   const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'avisos' | 'preview'>('reunioes');
   const [filtroSetorGerenciar, setFiltroSetorGerenciar] = useState('todos');
   const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
-  const [avisoModalOpen, setAvisoModalOpen] = useState(false);
+  const [eventosParaSelecionar, setEventosParaSelecionar] = useState<string[]>([]);
+  const [reforcoParaSelecionar, setReforcoParaSelecionar] = useState<string[]>([]);
   const [novoAvisoTitulo, setNovoAvisoTitulo] = useState('');
   const [novoAvisoAssunto, setNovoAvisoAssunto] = useState('');
+  const [avisoModalOpen, setAvisoModalOpen] = useState(false);
 
   // Carregar listas do localStorage
   useEffect(() => {
@@ -114,7 +118,6 @@ export default function Listas() {
       ativa: true,
       data: new Date().toISOString().slice(0, 10),
       categorias: [],
-      avisos: [],
     };
     setListaEditando(novaLista);
     setTela('gerenciar');
@@ -167,6 +170,27 @@ export default function Listas() {
     setNovaCategoriaNome('');
   };
 
+  const removerCategoria = (id: string) => {
+    setListaEditando((prev) =>
+      prev
+        ? { ...prev, categorias: prev.categorias.filter((c) => c.id !== id) }
+        : null
+    );
+  };
+
+  const editarCategoria = (id: string, nome: string) => {
+    setListaEditando((prev) =>
+      prev
+        ? {
+            ...prev,
+            categorias: prev.categorias.map((c) =>
+              c.id === id ? { ...c, nome } : c
+            ),
+          }
+        : null
+    );
+  };
+
   const adicionarAviso = () => {
     if (!listaEditando || !novoAvisoTitulo.trim() || !novoAvisoAssunto.trim()) return;
     const novoAviso: Aviso = {
@@ -187,28 +211,7 @@ export default function Listas() {
   const removerAviso = (id: string) => {
     setListaEditando((prev) =>
       prev
-        ? { ...prev, avisos: prev.avisos.filter((a) => a.id !== id) }
-        : null
-    );
-  };
-
-  const removerCategoria = (id: string) => {
-    setListaEditando((prev) =>
-      prev
-        ? { ...prev, categorias: prev.categorias.filter((c) => c.id !== id) }
-        : null
-    );
-  };
-
-  const editarCategoria = (id: string, nome: string) => {
-    setListaEditando((prev) =>
-      prev
-        ? {
-            ...prev,
-            categorias: prev.categorias.map((c) =>
-              c.id === id ? { ...c, nome } : c
-            ),
-          }
+        ? { ...prev, avisos: (prev.avisos || []).filter((a) => a.id !== id) }
         : null
     );
   };
@@ -447,6 +450,17 @@ export default function Listas() {
   const eventosReuniao = eventosSalvos.filter(e => e.subtipoReuniao);
   const eventosAvisos = eventosSalvos.filter(e => !e.subtipoReuniao);
 
+  const reforcosSalvos = reforcos.filter(r => {
+    if (listaEditando?.dataInicio) {
+      const reforcoDate = r.data;
+      const dataInicio = listaEditando?.dataInicio ? new Date(listaEditando.dataInicio + 'T00:00:00') : null;
+      const dataFim = listaEditando?.dataFim ? new Date(listaEditando.dataFim + 'T23:59:59') : null;
+      if (dataInicio && reforcoDate < new Date(dataInicio).toISOString().slice(0, 10)) return false;
+      if (dataFim && reforcoDate > new Date(dataFim).toISOString().slice(0, 10)) return false;
+    }
+    return true;
+  }).sort((a, b) => a.data.localeCompare(b.data));
+
   const tiposEventosUnicos = [...new Set(eventosAvisos.map(e => e.tipo))].sort();
 
   // TELA: GERENCIAR CATEGORIAS
@@ -517,8 +531,8 @@ export default function Listas() {
             {eventosReuniao.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-foreground">Eventos Agendados Importados</h3>
-                  <Badge variant="secondary">{eventosReuniao.length} eventos</Badge>
+                  <h3 className="text-lg font-semibold text-foreground">Eventos Agendados (Selecione para Preview)</h3>
+                  <Badge variant="secondary">{eventosParaSelecionar.length}/{eventosReuniao.length} selecionados</Badge>
                 </div>
 
                 {[...new Set(eventosReuniao.map(e => e.subtipoReuniao))].sort().map((tipoReuniao) => {
@@ -530,6 +544,19 @@ export default function Listas() {
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-4 py-2 text-left w-8">
+                                <Checkbox 
+                                  checked={eventosPorTipo.every(e => eventosParaSelecionar.includes(e.id))}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setEventosParaSelecionar(prev => [...new Set([...prev, ...eventosPorTipo.map(e => e.id)])])
+                                    } else {
+                                      setEventosParaSelecionar(prev => prev.filter(id => !eventosPorTipo.some(e => e.id === id)))
+                                    }
+                                    setListaEditando(prev => prev ? { ...prev, eventosSelected: prev.eventosSelected || [] } : null)
+                                  }}
+                                />
+                              </th>
                               <th className="px-4 py-2 text-left">Data</th>
                               <th className="px-4 py-2 text-left">Hora</th>
                               <th className="px-4 py-2 text-left">Localidade</th>
@@ -539,6 +566,19 @@ export default function Listas() {
                           <tbody>
                             {eventosPorTipo.map((e) => (
                               <tr key={e.id} className="border-b border-border hover:bg-muted/30">
+                                <td className="px-4 py-2">
+                                  <Checkbox 
+                                    checked={eventosParaSelecionar.includes(e.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setEventosParaSelecionar(prev => [...prev, e.id])
+                                      } else {
+                                        setEventosParaSelecionar(prev => prev.filter(id => id !== e.id))
+                                      }
+                                      setListaEditando(prev => prev ? { ...prev, eventosSelected: prev.eventosSelected || [] } : null)
+                                    }}
+                                  />
+                                </td>
                                 <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td className="px-4 py-2">{e.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
@@ -562,6 +602,78 @@ export default function Listas() {
 
             {/* DIVISOR */}
             {eventosReuniao.length > 0 && (
+              <div className="border-t border-border pt-6" />
+            )}
+
+            {/* SEÇÃO: REFORÇOS IMPORTADOS */}
+            {reforcosSalvos.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">Reforços (Selecione para Preview)</h3>
+                  <Badge variant="secondary">{reforcoParaSelecionar.length}/{reforcosSalvos.length} selecionados</Badge>
+                </div>
+
+                {[...new Set(reforcosSalvos.map(r => r.tipo))].sort().map((tipoReforco) => {
+                  const reforcosPorTipo = reforcosSalvos.filter(r => r.tipo === tipoReforco);
+                  return (
+                    <div key={tipoReforco} className="space-y-2">
+                      <h4 className="font-semibold text-sm text-foreground uppercase">Reforço - {tipoReforco}</h4>
+                      <div className="glass-card rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-4 py-2 text-left w-8">
+                                <Checkbox 
+                                  checked={reforcosPorTipo.every(r => reforcoParaSelecionar.includes(r.id))}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setReforcoParaSelecionar(prev => [...new Set([...prev, ...reforcosPorTipo.map(r => r.id)])])
+                                    } else {
+                                      setReforcoParaSelecionar(prev => prev.filter(id => !reforcosPorTipo.some(r => r.id === id)))
+                                    }
+                                    setListaEditando(prev => prev ? { ...prev, reforcosSelecionados: prev.reforcosSelecionados || [] } : null)
+                                  }}
+                                />
+                              </th>
+                              <th className="px-4 py-2 text-left">Data</th>
+                              <th className="px-4 py-2 text-left">Hora</th>
+                              <th className="px-4 py-2 text-left">Localidade</th>
+                              <th className="px-4 py-2 text-left">Responsáveis</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reforcosPorTipo.map((r) => (
+                              <tr key={r.id} className="border-b border-border hover:bg-muted/30">
+                                <td className="px-4 py-2">
+                                  <Checkbox 
+                                    checked={reforcoParaSelecionar.includes(r.id)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setReforcoParaSelecionar(prev => [...prev, r.id])
+                                      } else {
+                                        setReforcoParaSelecionar(prev => prev.filter(id => id !== r.id))
+                                      }
+                                      setListaEditando(prev => prev ? { ...prev, reforcosSelecionados: prev.reforcosSelecionados || [] } : null)
+                                    }}
+                                  />
+                                </td>
+                                <td className="px-4 py-2">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                <td className="px-4 py-2">{r.horario || '—'}</td>
+                                <td className="px-4 py-2">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
+                                <td className="px-4 py-2">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* DIVISOR */}
+            {reforcosSalvos.length > 0 && eventosReuniao.length > 0 && (
               <div className="border-t border-border pt-6" />
             )}
 
@@ -639,90 +751,44 @@ export default function Listas() {
         {/* ABA: AVISOS */}
         {abaGerenciar === 'avisos' && (
           <div className="space-y-6">
-            {/* SEÇÃO: AVISOS PERSONALIZADOS */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Avisos Personalizados</h3>
-                <Button 
-                  onClick={() => setAvisoModalOpen(true)}
-                  className="gap-2"
-                >
-                  Novo Aviso
-                </Button>
-              </div>
+            {/* Botão de novo aviso */}
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Avisos Personalizados</h3>
+              <Button 
+                onClick={() => setAvisoModalOpen(true)}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" /> Novo Aviso
+              </Button>
+            </div>
 
-              {/* Lista de Avisos */}
-              {!listaEditando?.avisos || listaEditando.avisos.length === 0 ? (
-                <div className="glass-card rounded-xl p-8 text-center">
-                  <p className="text-muted-foreground">Nenhum aviso adicionado.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {listaEditando.avisos.map((aviso) => (
-                    <div key={aviso.id} className="flex items-start justify-between p-4 glass-card rounded-lg border border-border">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{aviso.titulo}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{aviso.assunto}</p>
+            {/* Lista de Avisos */}
+            {listaEditando?.avisos && listaEditando.avisos.length > 0 ? (
+              <div className="space-y-3">
+                {listaEditando.avisos.map((aviso) => (
+                  <div key={aviso.id} className="glass-card p-4 rounded-lg border border-border">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <h4 className="font-bold text-foreground">{aviso.titulo}</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{aviso.assunto}</p>
                       </div>
                       <button
                         onClick={() => removerAviso(aviso.id)}
-                        className="ml-4 px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                        className="p-2 hover:bg-destructive/10 hover:text-destructive rounded transition-colors"
                       >
-                        <Trash2 className="h-4 w-4" /> Remover
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <p className="text-muted-foreground">Nenhum aviso adicionado ainda.</p>
+              </div>
+            )}
 
-            {/* DIVISOR */}
-            <div className="border-t border-border pt-6" />
-
-            {/* SEÇÃO: EVENTOS AGENDADOS COMO AVISOS */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Eventos Agendados (Avisos)</h3>
-              {eventosAvisos.length === 0 ? (
-                <div className="glass-card rounded-xl p-8 text-center">
-                  <p className="text-muted-foreground">Nenhum aviso agendado para este período.</p>
-                </div>
-              ) : (
-                <>
-                  {tiposEventosUnicos.map((tipo) => {
-                    const eventosPorTipo = eventosAvisos.filter(e => e.tipo === tipo);
-                    return (
-                      <div key={tipo} className="space-y-2">
-                        <h4 className="font-bold text-sm text-foreground uppercase">{tipo}</h4>
-                        <div className="glass-card rounded-lg overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-muted/50 border-b border-border">
-                                <th className="px-4 py-2 text-left">Data</th>
-                                <th className="px-4 py-2 text-left">Hora</th>
-                                <th className="px-4 py-2 text-left">Localidade</th>
-                                <th className="px-4 py-2 text-left">Responsável</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {eventosPorTipo.map((e) => (
-                                <tr key={e.id} className="border-b border-border hover:bg-muted/30">
-                                  <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                  <td className="px-4 py-2">{e.horario || '—'}</td>
-                                  <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                                  <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-
-            {/* MODAL: NOVO AVISO */}
+            {/* Modal: Novo Aviso */}
             {avisoModalOpen && (
               <>
                 <div 
@@ -735,7 +801,7 @@ export default function Listas() {
                 />
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div className="glass-card rounded-2xl p-8 w-full max-w-md shadow-2xl border border-border/50">
-                    <h2 className="text-2xl font-bold font-display text-foreground mb-6">Novo Aviso</h2>
+                    <h2 className="text-2xl font-bold mb-6">Novo Aviso</h2>
                     
                     <div className="space-y-4">
                       <div>
@@ -744,7 +810,6 @@ export default function Listas() {
                           value={novoAvisoTitulo}
                           onChange={(e) => setNovoAvisoTitulo(e.target.value)}
                           placeholder="Título do aviso"
-                          className="w-full"
                           onKeyPress={(e) => e.key === 'Enter' && adicionarAviso()}
                         />
                       </div>
@@ -757,11 +822,6 @@ export default function Listas() {
                           placeholder="Descrição do aviso"
                           className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                           rows={4}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && e.ctrlKey) {
-                              adicionarAviso();
-                            }
-                          }}
                         />
                       </div>
                     </div>
@@ -795,74 +855,119 @@ export default function Listas() {
 
         {/* ABA: PREVIEW */}
         {abaGerenciar === 'preview' && (
-          <div className="space-y-4">
-            {/* Filtros */}
-            <div className="flex gap-4">
-              <select
-                value={filtroSetorGerenciar}
-                onChange={(e) => setFiltroSetorGerenciar(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="todos">Todos setores</option>
-                {congregacoes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {getCongregacaoNome(c.id)}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filtroCategoriasGerenciar}
-                onChange={(e) => setFiltroCategoriasGerenciar(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="todas">Todas categorias</option>
-                {[...new Set(eventosSalvos.map(e => e.subtipoReuniao || e.tipo))].
-                  filter(Boolean)
-                  .sort()
-                  .map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {/* Tabela de eventos */}
-            {eventosSalvos.length === 0 ? (
+          <div className="space-y-6">
+            {eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0 ? (
               <div className="glass-card rounded-xl p-12 text-center">
-                <p className="text-muted-foreground">Nenhum evento agendado para este período.</p>
+                <p className="text-muted-foreground">Nenhum evento ou reforço selecionado para visualizar.</p>
+                <p className="text-sm mt-2 text-muted-foreground">Vá para a aba Reuniões e selecione itens para visualizar aqui.</p>
               </div>
             ) : (
-              <div className="glass-card rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted/50 border-b border-border">
-                      <th className="px-4 py-2 text-left">Data</th>
-                      <th className="px-4 py-2 text-left">Hora</th>
-                      <th className="px-4 py-2 text-left">Tipo</th>
-                      <th className="px-4 py-2 text-left">Localidade</th>
-                      <th className="px-4 py-2 text-left">Responsável</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eventosSalvos
-                      .filter((e) =>
-                        (filtroSetorGerenciar === 'todos' || e.congregacaoId === filtroSetorGerenciar) &&
-                        (filtroCategoriasGerenciar === 'todas' || e.subtipoReuniao === filtroCategoriasGerenciar || e.tipo === filtroCategoriasGerenciar)
-                      )
-                      .map((e) => (
-                        <tr key={e.id} className="border-b border-border hover:bg-muted/30">
-                          <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="px-4 py-2">{e.horario || '—'}</td>
-                          <td className="px-4 py-2 font-medium">{e.subtipoReuniao || e.tipo}</td>
-                          <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
+              <div className="glass-card rounded-xl p-8 space-y-6 bg-white" ref={previewRef}>
+                {/* CABEÇALHO */}
+                <div className="text-center space-y-2 pb-6 border-b-2 border-gray-800">
+                  <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
+                  <div className="text-lg font-bold mt-3">{listaEditando?.nome || 'LISTA'}</div>
+                  <div className="text-sm font-semibold mt-2">{meses[listaEditando?.mes || 0]} DE {listaEditando?.ano || new Date().getFullYear()}</div>
+                  {(listaEditando?.dataInicio || listaEditando?.dataFim) && (
+                    <div className="text-xs font-semibold mt-1">
+                      {listaEditando?.dataInicio ? new Date(listaEditando.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : 'Inicio'} A {listaEditando?.dataFim ? new Date(listaEditando.dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : 'Fim'}
+                    </div>
+                  )}
+                </div>
+
+                {/* AVISOS */}
+                {listaEditando?.avisos && listaEditando.avisos.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">Avisos</h4>
+                    {listaEditando.avisos.map(aviso => (
+                      <div key={aviso.id} className="space-y-1">
+                        <p className="font-bold text-sm text-gray-900">{aviso.titulo}</p>
+                        <p className="text-xs text-gray-700">{aviso.assunto}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* EVENTOS SELECIONADOS */}
+                {eventosParaSelecionar.length > 0 && (
+                  <div className="space-y-4">
+                    {[...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))].sort().map(tipo => {
+                      const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
+                      return (
+                        <div key={tipo} className="space-y-2">
+                          <h5 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">{tipo}</h5>
+                          <table className="w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-gray-100 border border-gray-400">
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">DATA</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">HORA</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">LOCAL</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">RESPONSÁVEL</td>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {eventos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(e => (
+                                <tr key={e.id} className="border border-gray-400">
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{e.horario || '-'}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{e.anciaoAtende || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* REFORÇOS SELECIONADOS */}
+                {reforcoParaSelecionar.length > 0 && (
+                  <div className="space-y-4">
+                    {[...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))].sort().map(tipo => {
+                      const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
+                      return (
+                        <div key={tipo} className="space-y-2">
+                          <h5 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">REFORÇO - {tipo}</h5>
+                          <table className="w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-gray-100 border border-gray-400">
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">DATA</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">HORA</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">LOCAL</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">RESPONSÁVEIS</td>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map(r => (
+                                <tr key={r.id} className="border border-gray-400">
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{r.horario || '-'}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
+
+            {/* BOTÃO DE EXPORTAR PDF */}
+            <div className="flex gap-2 justify-center">
+              <Button 
+                onClick={gerarPDF} 
+                disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" /> Gerar PDF
+              </Button>
+            </div>
           </div>
         )}
 
@@ -1421,21 +1526,6 @@ export default function Listas() {
 
             {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
               <p className="text-sm text-muted-foreground text-center">Nenhum evento ou reforço no período selecionado.</p>
-            )}
-
-            {/* AVISOS PERSONALIZADOS */}
-            {listaEditando?.avisos && listaEditando.avisos.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">AVISOS</h4>
-                <div className="space-y-3">
-                  {listaEditando.avisos.map((aviso) => (
-                    <div key={aviso.id} className="border border-gray-400 p-3">
-                      <div className="font-bold text-sm">{aviso.titulo}</div>
-                      <div className="text-xs mt-1 whitespace-pre-wrap">{aviso.assunto}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             )}
           </div>
           </div>
