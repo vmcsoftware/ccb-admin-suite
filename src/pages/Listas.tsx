@@ -18,6 +18,7 @@ interface Aviso {
   id: string;
   titulo: string;
   assunto: string;
+  mostrarNoPreview?: boolean;
 }
 
 interface Lista {
@@ -77,6 +78,7 @@ export default function Listas() {
   const [reforcoParaSelecionar, setReforcoParaSelecionar] = useState<string[]>([]);
   const [novoAvisoTitulo, setNovoAvisoTitulo] = useState('');
   const [novoAvisoAssunto, setNovoAvisoAssunto] = useState('');
+  const [novoAvisoPreview, setNovoAvisoPreview] = useState(true);
   const [avisoModalOpen, setAvisoModalOpen] = useState(false);
   const [isNewList, setIsNewList] = useState(false);
 
@@ -228,6 +230,7 @@ export default function Listas() {
       id: Date.now().toString(),
       titulo: novoAvisoTitulo,
       assunto: novoAvisoAssunto,
+      mostrarNoPreview: novoAvisoPreview,
     };
     setListaEditando((prev) =>
       prev
@@ -236,6 +239,7 @@ export default function Listas() {
     );
     setNovoAvisoTitulo('');
     setNovoAvisoAssunto('');
+    setNovoAvisoPreview(true);
     setAvisoModalOpen(false);
   };
 
@@ -598,7 +602,7 @@ export default function Listas() {
                               <th className="px-4 py-2 text-left">Data</th>
                               <th className="px-4 py-2 text-left">Hora</th>
                               <th className="px-4 py-2 text-left">Localidade</th>
-                              <th className="px-4 py-2 text-left">Responsável</th>
+                              <th className="px-4 py-2 text-left">Irmão</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -676,7 +680,7 @@ export default function Listas() {
                               <th className="px-4 py-2 text-left">Data</th>
                               <th className="px-4 py-2 text-left">Hora</th>
                               <th className="px-4 py-2 text-left">Localidade</th>
-                              <th className="px-4 py-2 text-left">Responsáveis</th>
+                              <th className="px-4 py-2 text-left">Irmãos</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -804,15 +808,20 @@ export default function Listas() {
             {listaEditando?.avisos && listaEditando.avisos.length > 0 ? (
               <div className="space-y-3">
                 {listaEditando.avisos.map((aviso) => (
-                  <div key={aviso.id} className="glass-card p-4 rounded-lg border border-border">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <h4 className="font-bold text-foreground">{aviso.titulo}</h4>
+                  <div key={aviso.id} className="glass-card p-4 rounded-lg border border-border bg-gradient-to-r from-primary/5 to-transparent">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-foreground">{aviso.titulo}</h4>
+                          {aviso.mostrarNoPreview !== false && (
+                            <Badge variant="outline" className="text-xs">Preview</Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{aviso.assunto}</p>
                       </div>
                       <button
                         onClick={() => removerAviso(aviso.id)}
-                        className="p-2 hover:bg-destructive/10 hover:text-destructive rounded transition-colors"
+                        className="p-2 hover:bg-destructive/10 hover:text-destructive rounded transition-colors flex-shrink-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -821,7 +830,7 @@ export default function Listas() {
                 ))}
               </div>
             ) : (
-              <div className="glass-card rounded-xl p-12 text-center">
+              <div className="glass-card rounded-xl p-12 text-center border-2 border-dashed border-border">
                 <p className="text-muted-foreground">Nenhum aviso adicionado ainda.</p>
               </div>
             )}
@@ -835,6 +844,7 @@ export default function Listas() {
                     setAvisoModalOpen(false);
                     setNovoAvisoTitulo('');
                     setNovoAvisoAssunto('');
+                    setNovoAvisoPreview(true);
                   }}
                 />
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -862,6 +872,14 @@ export default function Listas() {
                           rows={4}
                         />
                       </div>
+
+                      <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <Checkbox
+                          checked={novoAvisoPreview}
+                          onCheckedChange={(checked) => setNovoAvisoPreview(!!checked)}
+                        />
+                        <Label className="text-sm font-medium cursor-pointer">Importar para o Preview</Label>
+                      </div>
                     </div>
 
                     <div className="flex gap-3 mt-8 pt-6 border-t border-border">
@@ -870,6 +888,7 @@ export default function Listas() {
                           setAvisoModalOpen(false);
                           setNovoAvisoTitulo('');
                           setNovoAvisoAssunto('');
+                          setNovoAvisoPreview(true);
                         }}
                         variant="outline"
                         className="flex-1"
@@ -914,10 +933,10 @@ export default function Listas() {
                 </div>
 
                 {/* AVISOS */}
-                {listaEditando?.avisos && listaEditando.avisos.length > 0 && (
+                {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">Avisos</h4>
-                    {listaEditando.avisos.map(aviso => (
+                    {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
                       <div key={aviso.id} className="space-y-1">
                         <p className="font-bold text-sm text-gray-900">{aviso.titulo}</p>
                         <p className="text-xs text-gray-700">{aviso.assunto}</p>
@@ -940,7 +959,7 @@ export default function Listas() {
                                 <td className="border border-gray-400 px-2 py-1 font-bold text-center">DATA</td>
                                 <td className="border border-gray-400 px-2 py-1 font-bold text-center">HORA</td>
                                 <td className="border border-gray-400 px-2 py-1 font-bold text-center">LOCAL</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">RESPONSÁVEL</td>
+                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">IRMÃO</td>
                               </tr>
                             </thead>
                             <tbody>
@@ -1036,20 +1055,21 @@ export default function Listas() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold font-display text-foreground">Listas</h1>
+            <h1 className="text-3xl font-bold font-display text-foreground">Listas</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerencie listas de eventos, reuniões e reforços</p>
           </div>
-          <Button onClick={novaLista} className="gap-2">
+          <Button onClick={novaLista} className="gap-2 h-10 px-6">
             <FileText className="h-4 w-4" /> Nova Lista
           </Button>
         </div>
 
         {/* Filtro de Ano */}
-        <div className="flex items-center gap-4">
-          <Label className="font-semibold">Ano</Label>
+        <div className="glass-card rounded-lg p-4 flex items-center gap-4">
+          <Label className="font-semibold text-foreground">Filtrar por Ano:</Label>
           <select
             value={anoFiltro}
             onChange={(e) => setAnoFiltro(parseInt(e.target.value))}
-            className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary font-medium"
           >
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((ano) => (
               <option key={ano} value={ano}>
@@ -1059,58 +1079,56 @@ export default function Listas() {
           </select>
         </div>
 
-        {/* Tabela de Listas */}
-        <div className="glass-card rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left font-semibold text-foreground">Lista</th>
-                <th className="px-6 py-3 text-left font-semibold text-foreground">Mês</th>
-                <th className="px-6 py-3 text-center font-semibold text-foreground">Status</th>
-                <th className="px-6 py-3 text-right font-semibold text-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listasFiltradas.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
-                    Nenhuma lista para {anoFiltro}
-                  </td>
-                </tr>
-              ) : (
-                listasFiltradas.map((lista) => (
-                  <tr key={lista.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                    <td className="px-6 py-3 text-foreground">{lista.nome}</td>
-                    <td className="px-6 py-3 text-foreground">{meses[lista.mes]} - {lista.ano}</td>
-                    <td className="px-6 py-3 text-center">
-                      <Badge variant={lista.ativa ? 'default' : 'secondary'}>
-                        {lista.ativa ? 'Ativada' : 'Desativada'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => editarLista(lista)}
-                          className="p-2 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground"
-                          title="Editar lista"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deletarLista(lista.id)}
-                          className="p-2 hover:bg-destructive/10 rounded transition-colors text-muted-foreground hover:text-destructive"
-                          title="Deletar lista"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Tabela de Listas com Layout Melhorado */}
+        {listasFiltradas.length === 0 ? (
+          <div className="glass-card rounded-xl p-12 text-center border-2 border-dashed border-border">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground/40 mb-4" />
+            <p className="text-lg font-semibold text-muted-foreground">Nenhuma lista para {anoFiltro}</p>
+            <p className="text-sm text-muted-foreground mt-1">Comece criando uma nova lista clicando no botão acima</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {listasFiltradas.map((lista) => (
+              <div 
+                key={lista.id} 
+                className="glass-card rounded-lg p-5 flex items-center justify-between hover:bg-muted/60 transition-colors border border-border/50"
+              >
+                <div className="flex-1 flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground text-lg">{lista.nome}</h3>
+                    <p className="text-sm text-muted-foreground">{meses[lista.mes]} • {lista.ano}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Badge variant={lista.ativa ? 'default' : 'secondary'} className="px-3 py-1">
+                    {lista.ativa ? '✓ Ativada' : 'Desativada'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => editarLista(lista)}
+                    className="p-2.5 hover:bg-primary/10 rounded-lg transition-colors text-primary hover:text-primary/80"
+                    title="Editar lista"
+                  >
+                    <Edit2 className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => deletarLista(lista.id)}
+                    className="p-2.5 hover:bg-destructive/10 rounded-lg transition-colors text-destructive hover:text-destructive/80"
+                    title="Deletar lista"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -1436,7 +1454,7 @@ export default function Listas() {
                       <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">TIPO</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
                     </tr>
                   </thead>
                   <tbody>
@@ -1523,7 +1541,7 @@ export default function Listas() {
                       <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
                     </tr>
                   </thead>
                   <tbody>
@@ -1552,7 +1570,7 @@ export default function Listas() {
                       <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
                       <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">RESPONSÁVEL</td>
+                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
                     </tr>
                   </thead>
                   <tbody>
