@@ -32,6 +32,7 @@ export default function Reforcos() {
   const [editingReforcoId, setEditingReforcoId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
+  const [showMembrosDropdown, setShowMembrosDropdown] = useState(false);
   const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
   const [filterTipo, setFilterTipo] = useState<'Culto' | 'RJM' | 'Todos'>('Todos');
   const [form, setForm] = useState({
@@ -161,6 +162,7 @@ export default function Reforcos() {
             if (!isOpen) {
               setValidationError(null);
               setShowOutraLocalidade(false);
+              setShowMembrosDropdown(false);
               setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
               setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
               setEditingReforcoId(null);
@@ -172,7 +174,6 @@ export default function Reforcos() {
             <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">{editingReforcoId ? 'Editar Reforço' : 'Novo Reforço'}</DialogTitle>
-                <DialogTitle className="font-display">Novo Reforço</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {validationError && (
@@ -274,18 +275,36 @@ export default function Reforcos() {
                 {membros.length > 0 && (
                   <div>
                     <Label>Irmão</Label>
-                    <div className="mt-2 space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
-                      {[...membros]
-                        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                        .map((m) => (
-                        <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                          <Checkbox
-                            checked={form.membros.includes(m.id)}
-                            onCheckedChange={() => toggleMembro(m.id)}
-                          />
-                          <span className="text-foreground">{m.nome}</span>
-                        </label>
-                      ))}
+                    <div 
+                      className="mt-2 relative"
+                      onClick={() => setShowMembrosDropdown(!showMembrosDropdown)}
+                    >
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="text-muted-foreground">
+                          {form.membros.length > 0 ? `${form.membros.length} selecionado(s)` : 'Selecione'}
+                        </span>
+                        <span className="text-lg">▼</span>
+                      </button>
+                      {showMembrosDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                          <div className="space-y-2 p-3">
+                            {[...membros]
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                              <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-2 rounded">
+                                <Checkbox
+                                  checked={form.membros.includes(m.id)}
+                                  onCheckedChange={() => toggleMembro(m.id)}
+                                />
+                                <span className="text-foreground">{m.nome}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
