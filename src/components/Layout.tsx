@@ -10,6 +10,7 @@ import {
   Menu,
   ChevronLeft,
   Music,
+  BarChart3,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/agenda', label: 'Agenda', icon: Calendar },
   { path: '/ensaios', label: 'Ensaios', icon: Music },
   { path: '/reforcos', label: 'Reforços', icon: ShieldCheck },
+  { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { path: '/listas', label: 'Listas', icon: FileText },
 ];
 
