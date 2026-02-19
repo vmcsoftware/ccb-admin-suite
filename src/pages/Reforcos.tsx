@@ -181,6 +181,43 @@ export default function Reforcos() {
                     <AlertDescription>{validationError}</AlertDescription>
                   </Alert>
                 )}
+                <div>
+                  <Label>Congregação</Label>
+                  <Select 
+                    value={form.congregacaoId} 
+                    onValueChange={(v) => {
+                      setForm({ ...form, congregacaoId: v });
+                      setValidationError(null);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {[...congregacoes]
+                        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome.toLowerCase().includes('central') ? `${c.nome} (${c.cidade})` : c.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Tipo</Label>
+                  <Select 
+                    value={form.tipo} 
+                    onValueChange={(v) => {
+                      setForm({ ...form, tipo: v as Reforco['tipo'] });
+                      setValidationError(null);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Culto">Culto</SelectItem>
+                      <SelectItem value="RJM">RJM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Data</Label>
@@ -203,42 +240,6 @@ export default function Reforcos() {
                       }} 
                     />
                   </div>
-                </div>
-                <div>
-                  <Label>Tipo</Label>
-                  <Select 
-                    value={form.tipo} 
-                    onValueChange={(v) => {
-                      setForm({ ...form, tipo: v as Reforco['tipo'] });
-                      setValidationError(null);
-                    }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Culto">Culto</SelectItem>
-                      <SelectItem value="RJM">RJM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Select 
-                    value={form.congregacaoId} 
-                    onValueChange={(v) => {
-                      setForm({ ...form, congregacaoId: v });
-                      setValidationError(null);
-                    }}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {[...congregacoes]
-                        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nome.toLowerCase().includes('central') ? `${c.nome} (${c.cidade})` : c.nome}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
                 </div>
                 {form.congregacaoId && (() => {
                   const cong = congregacoes.find(c => c.id === form.congregacaoId);
@@ -272,7 +273,7 @@ export default function Reforcos() {
                 })()}
                 {membros.length > 0 && (
                   <div>
-                    <Label>Irmãos</Label>
+                    <Label>Irmão</Label>
                     <div className="mt-2 space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
                       {[...membros]
                         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
