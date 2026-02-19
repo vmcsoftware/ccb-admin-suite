@@ -981,19 +981,6 @@ export default function Listas() {
                       <div className="text-sm font-bold mt-2">{listaEditando?.nome || 'LISTA'}</div>
                     </div>
 
-                    {/* AVISOS */}
-                    {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                      <div className="space-y-2">
-                        {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
-                          <div key={aviso.id} className="space-y-1">
-                            <p className="font-bold text-xs text-gray-900">{aviso.titulo}</p>
-                            <p className="text-xs text-gray-700">{aviso.assunto}</p>
-                          </div>
-                        ))}
-                        <div className="border-t border-gray-300 my-3" />
-                      </div>
-                    )}
-
                     {/* EVENTOS SELECIONADOS */}
                     {eventosParaSelecionar.length > 0 && (
                       <div className="space-y-3">
@@ -1059,6 +1046,18 @@ export default function Listas() {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+
+                    {/* RODAPÉ: AVISOS */}
+                    {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
+                      <div className="space-y-2 border-t-2 border-gray-800 pt-4 mt-6">
+                        {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
+                          <div key={aviso.id} className="space-y-1">
+                            <p className="font-bold text-xs text-gray-900">{aviso.titulo}</p>
+                            <p className="text-xs text-gray-700">{aviso.assunto}</p>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
