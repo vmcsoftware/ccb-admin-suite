@@ -14,6 +14,12 @@ interface Categoria {
   nome: string;
 }
 
+interface Aviso {
+  id: string;
+  titulo: string;
+  assunto: string;
+}
+
 interface Lista {
   id: string;
   nome: string;
@@ -24,6 +30,7 @@ interface Lista {
   dataInicio?: string;
   dataFim?: string;
   categorias: Categoria[];
+  avisos: Aviso[];
 }
 
 export default function Listas() {
@@ -64,6 +71,9 @@ export default function Listas() {
   const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'avisos' | 'preview'>('reunioes');
   const [filtroSetorGerenciar, setFiltroSetorGerenciar] = useState('todos');
   const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
+  const [avisoModalOpen, setAvisoModalOpen] = useState(false);
+  const [novoAvisoTitulo, setNovoAvisoTitulo] = useState('');
+  const [novoAvisoAssunto, setNovoAvisoAssunto] = useState('');
 
   // Carregar listas do localStorage
   useEffect(() => {
@@ -104,6 +114,7 @@ export default function Listas() {
       ativa: true,
       data: new Date().toISOString().slice(0, 10),
       categorias: [],
+      avisos: [],
     };
     setListaEditando(novaLista);
     setTela('gerenciar');
@@ -154,6 +165,31 @@ export default function Listas() {
         : null
     );
     setNovaCategoriaNome('');
+  };
+
+  const adicionarAviso = () => {
+    if (!listaEditando || !novoAvisoTitulo.trim() || !novoAvisoAssunto.trim()) return;
+    const novoAviso: Aviso = {
+      id: Date.now().toString(),
+      titulo: novoAvisoTitulo,
+      assunto: novoAvisoAssunto,
+    };
+    setListaEditando((prev) =>
+      prev
+        ? { ...prev, avisos: [...(prev.avisos || []), novoAviso] }
+        : null
+    );
+    setNovoAvisoTitulo('');
+    setNovoAvisoAssunto('');
+    setAvisoModalOpen(false);
+  };
+
+  const removerAviso = (id: string) => {
+    setListaEditando((prev) =>
+      prev
+        ? { ...prev, avisos: prev.avisos.filter((a) => a.id !== id) }
+        : null
+    );
   };
 
   const removerCategoria = (id: string) => {
@@ -602,43 +638,156 @@ export default function Listas() {
 
         {/* ABA: AVISOS */}
         {abaGerenciar === 'avisos' && (
-          <div className="space-y-4">
-            {eventosAvisos.length === 0 ? (
-              <div className="glass-card rounded-xl p-12 text-center">
-                <p className="text-muted-foreground">Nenhum aviso agendado para este período.</p>
+          <div className="space-y-6">
+            {/* SEÇÃO: AVISOS PERSONALIZADOS */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">Avisos Personalizados</h3>
+                <Button 
+                  onClick={() => setAvisoModalOpen(true)}
+                  className="gap-2"
+                >
+                  Novo Aviso
+                </Button>
               </div>
-            ) : (
-              <>
-                {tiposEventosUnicos.map((tipo) => {
-                  const eventosPorTipo = eventosAvisos.filter(e => e.tipo === tipo);
-                  return (
-                    <div key={tipo} className="space-y-2">
-                      <h4 className="font-bold text-sm text-foreground uppercase">{tipo}</h4>
-                      <div className="glass-card rounded-lg overflow-hidden">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="bg-muted/50 border-b border-border">
-                              <th className="px-4 py-2 text-left">Data</th>
-                              <th className="px-4 py-2 text-left">Hora</th>
-                              <th className="px-4 py-2 text-left">Localidade</th>
-                              <th className="px-4 py-2 text-left">Responsável</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {eventosPorTipo.map((e) => (
-                              <tr key={e.id} className="border-b border-border hover:bg-muted/30">
-                                <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                <td className="px-4 py-2">{e.horario || '—'}</td>
-                                <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                                <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+
+              {/* Lista de Avisos */}
+              {!listaEditando?.avisos || listaEditando.avisos.length === 0 ? (
+                <div className="glass-card rounded-xl p-8 text-center">
+                  <p className="text-muted-foreground">Nenhum aviso adicionado.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {listaEditando.avisos.map((aviso) => (
+                    <div key={aviso.id} className="flex items-start justify-between p-4 glass-card rounded-lg border border-border">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground">{aviso.titulo}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">{aviso.assunto}</p>
+                      </div>
+                      <button
+                        onClick={() => removerAviso(aviso.id)}
+                        className="ml-4 px-3 py-1.5 rounded text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" /> Remover
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* DIVISOR */}
+            <div className="border-t border-border pt-6" />
+
+            {/* SEÇÃO: EVENTOS AGENDADOS COMO AVISOS */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">Eventos Agendados (Avisos)</h3>
+              {eventosAvisos.length === 0 ? (
+                <div className="glass-card rounded-xl p-8 text-center">
+                  <p className="text-muted-foreground">Nenhum aviso agendado para este período.</p>
+                </div>
+              ) : (
+                <>
+                  {tiposEventosUnicos.map((tipo) => {
+                    const eventosPorTipo = eventosAvisos.filter(e => e.tipo === tipo);
+                    return (
+                      <div key={tipo} className="space-y-2">
+                        <h4 className="font-bold text-sm text-foreground uppercase">{tipo}</h4>
+                        <div className="glass-card rounded-lg overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-muted/50 border-b border-border">
+                                <th className="px-4 py-2 text-left">Data</th>
+                                <th className="px-4 py-2 text-left">Hora</th>
+                                <th className="px-4 py-2 text-left">Localidade</th>
+                                <th className="px-4 py-2 text-left">Responsável</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {eventosPorTipo.map((e) => (
+                                <tr key={e.id} className="border-b border-border hover:bg-muted/30">
+                                  <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                  <td className="px-4 py-2">{e.horario || '—'}</td>
+                                  <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                                  <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {/* MODAL: NOVO AVISO */}
+            {avisoModalOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                  onClick={() => {
+                    setAvisoModalOpen(false);
+                    setNovoAvisoTitulo('');
+                    setNovoAvisoAssunto('');
+                  }}
+                />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div className="glass-card rounded-2xl p-8 w-full max-w-md shadow-2xl border border-border/50">
+                    <h2 className="text-2xl font-bold font-display text-foreground mb-6">Novo Aviso</h2>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-semibold mb-2 block">Título</Label>
+                        <Input
+                          value={novoAvisoTitulo}
+                          onChange={(e) => setNovoAvisoTitulo(e.target.value)}
+                          placeholder="Título do aviso"
+                          className="w-full"
+                          onKeyPress={(e) => e.key === 'Enter' && adicionarAviso()}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-semibold mb-2 block">Assunto</Label>
+                        <textarea
+                          value={novoAvisoAssunto}
+                          onChange={(e) => setNovoAvisoAssunto(e.target.value)}
+                          placeholder="Descrição do aviso"
+                          className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                          rows={4}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && e.ctrlKey) {
+                              adicionarAviso();
+                            }
+                          }}
+                        />
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="flex gap-3 mt-8 pt-6 border-t border-border">
+                      <Button
+                        onClick={() => {
+                          setAvisoModalOpen(false);
+                          setNovoAvisoTitulo('');
+                          setNovoAvisoAssunto('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={adicionarAviso}
+                        disabled={!novoAvisoTitulo.trim() || !novoAvisoAssunto.trim()}
+                        className="flex-1"
+                      >
+                        Adicionar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -1272,6 +1421,21 @@ export default function Listas() {
 
             {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
               <p className="text-sm text-muted-foreground text-center">Nenhum evento ou reforço no período selecionado.</p>
+            )}
+
+            {/* AVISOS PERSONALIZADOS */}
+            {listaEditando?.avisos && listaEditando.avisos.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">AVISOS</h4>
+                <div className="space-y-3">
+                  {listaEditando.avisos.map((aviso) => (
+                    <div key={aviso.id} className="border border-gray-400 p-3">
+                      <div className="font-bold text-sm">{aviso.titulo}</div>
+                      <div className="text-xs mt-1 whitespace-pre-wrap">{aviso.assunto}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
           </div>
