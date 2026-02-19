@@ -81,6 +81,9 @@ export default function Listas() {
   const [novoAvisoPreview, setNovoAvisoPreview] = useState(true);
   const [avisoModalOpen, setAvisoModalOpen] = useState(false);
   const [isNewList, setIsNewList] = useState(false);
+  const [filtroSetor, setFiltroSetor] = useState('todos');
+  const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [paginaPreview, setPaginaPreview] = useState('1');
 
   // Carregar listas do localStorage
   useEffect(() => {
@@ -919,112 +922,149 @@ export default function Listas() {
                 <p className="text-sm mt-2 text-muted-foreground">Vá para a aba Reuniões e selecione itens para visualizar aqui.</p>
               </div>
             ) : (
-              <div className="glass-card rounded-xl p-8 space-y-6 bg-white" ref={previewRef}>
-                {/* CABEÇALHO */}
-                <div className="text-center space-y-2 pb-6 border-b-2 border-gray-800">
-                  <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-                  <div className="text-lg font-bold mt-3">{listaEditando?.nome || 'LISTA'}</div>
-                  <div className="text-sm font-semibold mt-2">{meses[listaEditando?.mes || 0]} DE {listaEditando?.ano || new Date().getFullYear()}</div>
-                  {(listaEditando?.dataInicio || listaEditando?.dataFim) && (
-                    <div className="text-xs font-semibold mt-1">
-                      {listaEditando?.dataInicio ? new Date(listaEditando.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : 'Inicio'} A {listaEditando?.dataFim ? new Date(listaEditando.dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : 'Fim'}
-                    </div>
-                  )}
+              <>
+                {/* CONTROLES DE PREVIEW - NÃO SERÁ INCLUÍDO NO PDF */}
+                <div className="glass-card rounded-lg p-4 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={filtroSetor}
+                      onChange={(e) => setFiltroSetor(e.target.value)}
+                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="todos">Todos setores</option>
+                      <option value="setor1">Setor 1</option>
+                      <option value="setor2">Setor 2</option>
+                    </select>
+
+                    <select
+                      value={filtroCategoria}
+                      onChange={(e) => setFiltroCategoria(e.target.value)}
+                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="todas">Todas categorias</option>
+                      <option value="cat1">Categoria 1</option>
+                      <option value="cat2">Categoria 2</option>
+                    </select>
+
+                    <select
+                      value={paginaPreview}
+                      onChange={(e) => setPaginaPreview(e.target.value)}
+                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="1">1 página</option>
+                      <option value="2">2 páginas</option>
+                      <option value="todas">Todas</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground" title="Configurações">
+                      <Settings className="h-5 w-5" />
+                    </button>
+                    <Button 
+                      onClick={gerarPDF} 
+                      disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                      <FileText className="h-4 w-4" /> Imprimir
+                    </Button>
+                  </div>
                 </div>
 
-                {/* AVISOS */}
-                {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">Avisos</h4>
-                    {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
-                      <div key={aviso.id} className="space-y-1">
-                        <p className="font-bold text-sm text-gray-900">{aviso.titulo}</p>
-                        <p className="text-xs text-gray-700">{aviso.assunto}</p>
+                {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
+                <div className="border-2 border-border rounded-lg overflow-hidden">
+                  <div className="bg-white p-8 space-y-6" ref={previewRef}>
+                    {/* CABEÇALHO */}
+                    <div className="text-center space-y-1 pb-4 border-b-2 border-gray-800">
+                      <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
+                      <div className="text-xs font-semibold tracking-wider">{congregacoes[0]?.nome.toUpperCase() || 'ADMINISTRAÇÃO'} - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
+                      <div className="text-sm font-bold mt-2">{listaEditando?.nome || 'LISTA'}</div>
+                    </div>
+
+                    {/* AVISOS */}
+                    {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
+                      <div className="space-y-2">
+                        {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
+                          <div key={aviso.id} className="space-y-1">
+                            <p className="font-bold text-xs text-gray-900">{aviso.titulo}</p>
+                            <p className="text-xs text-gray-700">{aviso.assunto}</p>
+                          </div>
+                        ))}
+                        <div className="border-t border-gray-300 my-3" />
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )}
 
-                {/* EVENTOS SELECIONADOS */}
-                {eventosParaSelecionar.length > 0 && (
-                  <div className="space-y-4">
-                    {[...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))].sort().map(tipo => {
-                      const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
-                      return (
-                        <div key={tipo} className="space-y-2">
-                          <h5 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">{tipo}</h5>
-                          <table className="w-full text-xs border-collapse">
-                            <thead>
-                              <tr className="bg-gray-100 border border-gray-400">
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">DATA</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">HORA</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">LOCAL</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">IRMÃO</td>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {eventos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(e => (
-                                <tr key={e.id} className="border border-gray-400">
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{e.horario || '-'}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{getCongregacaoNome(e.congregacaoId) || '-'}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{e.anciaoAtende || '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                    {/* EVENTOS SELECIONADOS */}
+                    {eventosParaSelecionar.length > 0 && (
+                      <div className="space-y-3">
+                        {[...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))].sort().map(tipo => {
+                          const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
+                          return (
+                            <div key={tipo} className="space-y-1">
+                              <h5 className="font-bold text-xs text-center pb-1 border-b border-gray-400 uppercase">{tipo}</h5>
+                              <table className="w-full text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-gray-100 border border-gray-300">
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">DATA</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">HORA</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">LOCAL</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">IRMÃO</td>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {eventos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map(e => (
+                                    <tr key={e.id} className="border border-gray-300">
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{e.horario || '-'}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{e.anciaoAtende || '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                {/* REFORÇOS SELECIONADOS */}
-                {reforcoParaSelecionar.length > 0 && (
-                  <div className="space-y-4">
-                    {[...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))].sort().map(tipo => {
-                      const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
-                      return (
-                        <div key={tipo} className="space-y-2">
-                          <h5 className="font-bold text-sm text-center pb-2 border-b-2 border-gray-400 uppercase">REFORÇO - {tipo}</h5>
-                          <table className="w-full text-xs border-collapse">
-                            <thead>
-                              <tr className="bg-gray-100 border border-gray-400">
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">DATA</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">HORA</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">LOCAL</td>
-                                <td className="border border-gray-400 px-2 py-1 font-bold text-center">RESPONSÁVEIS</td>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map(r => (
-                                <tr key={r.id} className="border border-gray-400">
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{r.horario || '-'}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{getCongregacaoNome(r.congregacaoId) || '-'}</td>
-                                  <td className="border border-gray-400 px-2 py-1 text-center">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })}
+                    {/* REFORÇOS SELECIONADOS */}
+                    {reforcoParaSelecionar.length > 0 && (
+                      <div className="space-y-3">
+                        {[...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))].sort().map(tipo => {
+                          const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
+                          return (
+                            <div key={tipo} className="space-y-1">
+                              <h5 className="font-bold text-xs text-center pb-1 border-b border-gray-400 uppercase">REFORÇO - {tipo}</h5>
+                              <table className="w-full text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-gray-100 border border-gray-300">
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">DATA</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">HORA</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">LOCAL</td>
+                                    <td className="border border-gray-300 px-2 py-1 font-bold text-center text-xs">IRMÃO</td>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map(r => (
+                                    <tr key={r.id} className="border border-gray-300">
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{r.horario || '-'}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                      <td className="border border-gray-300 px-2 py-1 text-center text-xs">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              </>
             )}
-
-            {/* BOTÃO DE EXPORTAR PDF */}
-            <div className="flex gap-2 justify-center">
-              <Button 
-                onClick={gerarPDF} 
-                disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" /> Gerar PDF
-              </Button>
-            </div>
           </div>
         )}
 
