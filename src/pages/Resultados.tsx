@@ -43,7 +43,14 @@ export default function Resultados() {
 
   // Estados para Ensaio Regional
   const [openEnsaio, setOpenEnsaio] = useState(false);
-  const [formEnsaio, setFormEnsaio] = useState({ data: '', titulo: '', local: '', musicos: [], organistas: 0, observacoes: '' });
+  interface Musico {
+    id: string;
+    nome: string;
+    instrumento: string;
+    localidade: string;
+  }
+
+  const [formEnsaio, setFormEnsaio] = useState({ data: '', titulo: '', local: '', musicos: [] as Musico[], organistas: 0, observacoes: '' });
   const [editingEnsaio, setEditingEnsaio] = useState<string | null>(null);
   const [novoMusico, setNovoMusico] = useState({ nome: '', instrumento: '', localidade: '' });
 
@@ -126,7 +133,7 @@ export default function Resultados() {
   const removerMusico = (id: string) => {
     setFormEnsaio({
       ...formEnsaio,
-      musicos: formEnsaio.musicos.filter((m: any) => m.id !== id),
+      musicos: formEnsaio.musicos.filter((m: Musico) => m.id !== id),
     });
   };
 
@@ -234,7 +241,7 @@ export default function Resultados() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setFormBatismo(batismo);
+                          setFormBatismo({ ...batismo, observacoes: batismo.observacoes || '' });
                           setEditingBatismo(batismo.id);
                           setOpenBatismo(true);
                         }}
@@ -342,7 +349,7 @@ export default function Resultados() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setFormSantaCeia(santaceia);
+                          setFormSantaCeia({ ...santaceia, observacoes: santaceia.observacoes || '' });
                           setEditingSantaCeia(santaceia.id);
                           setOpenSantaCeia(true);
                         }}
@@ -413,7 +420,7 @@ export default function Resultados() {
 
                     {formEnsaio.musicos.length > 0 && (
                       <div className="space-y-2 mb-4">
-                        {(formEnsaio.musicos as any[]).map((musico: any) => (
+                        {formEnsaio.musicos.map((musico: Musico) => (
                           <div key={musico.id} className="flex items-center justify-between bg-muted/30 p-2 rounded-lg text-sm">
                             <div>
                               <p className="font-medium">{musico.nome}</p>
@@ -450,7 +457,7 @@ export default function Resultados() {
 
           <div className="grid gap-4">
             {ensaios.map((ensaio) => {
-              const instrumentos = (ensaio.musicos as any[]).reduce((acc: Record<string, number>, m: any) => {
+              const instrumentos = ensaio.musicos.reduce((acc: Record<string, number>, m: Musico) => {
                 acc[m.instrumento] = (acc[m.instrumento] || 0) + 1;
                 return acc;
               }, {});
@@ -483,7 +490,7 @@ export default function Resultados() {
                           <div className="mt-3">
                             <p className="text-xs font-medium mb-1">Instrumentos:</p>
                             <div className="flex gap-2 flex-wrap">
-                              {Object.entries(instrumentos).map(([inst, count]: [string, any]) => (
+                              {Object.entries(instrumentos).map(([inst, count]: [string, number]) => (
                                 <Badge key={inst} variant="secondary" className="text-xs">
                                   {inst}: {count}
                                 </Badge>
@@ -498,7 +505,15 @@ export default function Resultados() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setFormEnsaio(ensaio);
+                            const { id, ...ensaioSemId } = ensaio;
+                            setFormEnsaio({
+                              ...ensaioSemId,
+                              musicos: ensaioSemId.musicos.map((m) => ({
+                                ...m,
+                                localidade: m.localidade || '',
+                              })),
+                              observacoes: ensaio.observacoes || '',
+                            });
                             setEditingEnsaio(ensaio.id);
                             setOpenEnsaio(true);
                           }}
