@@ -78,6 +78,7 @@ export default function Listas() {
   const [novoAvisoTitulo, setNovoAvisoTitulo] = useState('');
   const [novoAvisoAssunto, setNovoAvisoAssunto] = useState('');
   const [avisoModalOpen, setAvisoModalOpen] = useState(false);
+  const [isNewList, setIsNewList] = useState(false);
 
   // Carregar listas do localStorage
   useEffect(() => {
@@ -106,35 +107,55 @@ export default function Listas() {
       dataInicio: new Date().toISOString().slice(0, 10),
       dataFim: new Date().toISOString().slice(0, 10),
     });
+    setIsNewList(true);
     setTela('formulario');
   };
 
   const salvarFormularioLista = () => {
-    const novaLista: Lista = {
+    if (!formLista.nome.trim()) {
+      alert('Nome da lista é obrigatório!');
+      return;
+    }
+    if (formLista.dataInicio && formLista.dataFim && formLista.dataInicio > formLista.dataFim) {
+      alert('Data de início não pode ser posterior à data de fim!');
+      return;
+    }
+    const novaListaObj: Lista = {
       id: Date.now().toString(),
-      nome: formLista.nome,
+      nome: formLista.nome.trim(),
       mes: formLista.mes,
       ano: formLista.ano,
       ativa: true,
       data: new Date().toISOString().slice(0, 10),
+      dataInicio: formLista.dataInicio,
+      dataFim: formLista.dataFim,
       categorias: [],
+      avisos: [],
+      eventosSelected: [],
+      reforcosSelecionados: [],
     };
-    setListaEditando(novaLista);
+    setListaEditando(novaListaObj);
+    setEventosParaSelecionar([]);
+    setReforcoParaSelecionar([]);
     setTela('gerenciar');
     setCategoriasFiltro('todas');
     setNovaCategoriaNome('');
     setAbaGerenciar('reunioes');
     setFiltroSetorGerenciar('todos');
     setFiltroCategoriasGerenciar('todas');
+    setIsNewList(true);
     resetFormulario();
   };
 
   const editarLista = (lista: Lista) => {
     setListaEditando(lista);
+    setEventosParaSelecionar(lista.eventosSelected || []);
+    setReforcoParaSelecionar(lista.reforcosSelecionados || []);
     setAbaGerenciar('reunioes');
     setFiltroSetorGerenciar('todos');
     setFiltroCategoriasGerenciar('todas');
-    setTela('editor');
+    setIsNewList(false);
+    setTela('gerenciar');
   };
 
   const deletarLista = (id: string) => {
@@ -143,17 +164,27 @@ export default function Listas() {
 
   const salvarLista = () => {
     if (!listaEditando) return;
-    if (listaEditando.id && listas.find((l) => l.id === listaEditando.id)) {
-      setListas((prev) => prev.map((l) => (l.id === listaEditando.id ? listaEditando : l)));
+    const listaFinal = {
+      ...listaEditando,
+      eventosSelected: eventosParaSelecionar,
+      reforcosSelecionados: reforcoParaSelecionar,
+      avisos: listaEditando.avisos || [],
+    };
+    if (listas.find((l) => l.id === listaEditando.id)) {
+      setListas((prev) => prev.map((l) => (l.id === listaEditando.id ? listaFinal : l)));
     } else {
-      setListas((prev) => [...prev, listaEditando]);
+      setListas((prev) => [...prev, listaFinal]);
     }
-    setTela('gerenciar');
+    setTela('inicial');
+    setListaEditando(null);
+    setEventosParaSelecionar([]);
+    setReforcoParaSelecionar([]);
     setCategoriasFiltro('todas');
     setNovaCategoriaNome('');
     setAbaGerenciar('reunioes');
     setFiltroSetorGerenciar('todos');
     setFiltroCategoriasGerenciar('todas');
+    setIsNewList(false);
   };
 
   const adicionarCategoria = () => {
@@ -425,6 +456,7 @@ export default function Listas() {
             </Button>
             <Button
               onClick={salvarFormularioLista}
+              disabled={!formLista.nome.trim() || (formLista.dataInicio && formLista.dataFim && formLista.dataInicio > formLista.dataFim)}
               className="flex-1 gap-2"
             >
               Salvar
@@ -471,7 +503,13 @@ export default function Listas() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => { setTela('inicial'); setListaEditando(null); }}
+            onClick={() => { 
+              setTela('inicial'); 
+              setListaEditando(null);
+              setEventosParaSelecionar([]);
+              setReforcoParaSelecionar([]);
+              setIsNewList(false);
+            }}
             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -973,10 +1011,19 @@ export default function Listas() {
 
         {/* Botão Salvar */}
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => { setTela('inicial'); setListaEditando(null); }}>
+          <Button 
+            variant="outline" 
+            onClick={() => { 
+              setTela('inicial'); 
+              setListaEditando(null); 
+              setEventosParaSelecionar([]);
+              setReforcoParaSelecionar([]);
+              setIsNewList(false);
+            }}
+          >
             Cancelar
           </Button>
-          <Button onClick={() => { const novaListaAtualizada = listaEditando; setListas((prev) => prev.map((l) => l.id === novaListaAtualizada.id ? novaListaAtualizada : l)); setTela('inicial'); setListaEditando(null); }}>
+          <Button onClick={salvarLista}>
             Salvar Alterações
           </Button>
         </div>
