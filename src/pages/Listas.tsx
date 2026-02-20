@@ -205,8 +205,6 @@ export default function Listas() {
       eventosSelected: eventosParaSelecionar,
       reforcosSelecionados: reforcoParaSelecionar,
       avisos: listaEditando.avisos || [],
-      ordenacaoEventos: ordenacaoEventos,
-      estiloConfig: estiloConfig,
     };
     if (listas.find((l) => l.id === listaEditando.id)) {
       setListas((prev) => prev.map((l) => (l.id === listaEditando.id ? listaFinal : l)));
@@ -306,38 +304,6 @@ export default function Listas() {
   const tiposReunioesDisponiveis = ['Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação'];
   const tiposEventosDisponiveis = ['Culto', 'RJM', 'Ensaio', 'Jovens', 'Outro'];
   const tiposReforcoDisponiveis = ['Culto', 'RJM'];
-
-  // Função para obter ordem de tipos de eventos
-  const getOrdenTipos = (tipos: string[]): string[] => {
-    return [...tipos].sort((a, b) => {
-      const posA = ordenacaoEventos[a] ?? Infinity;
-      const posB = ordenacaoEventos[b] ?? Infinity;
-      return posA - posB;
-    });
-  };
-
-  // Função para atualizar ordem de um tipo
-  const atualizarOrdenTipo = (tipo: string, novaPos: number) => {
-    const novaOrdenacao = { ...ordenacaoEventos };
-    
-    // Encontrar posição máxima atual
-    const posicoes = Object.values(novaOrdenacao).filter(p => typeof p === 'number');
-    const maxPos = posicoes.length > 0 ? Math.max(...posicoes) : 0;
-    
-    // Se posição é maior que o máximo, ajusta
-    if (novaPos > maxPos + 1) novaPos = maxPos + 1;
-    if (novaPos < 0) novaPos = 0;
-    
-    // Reajustar posições dos outros tipos se necessário
-    Object.keys(novaOrdenacao).forEach(t => {
-      if (t !== tipo && novaOrdenacao[t] >= novaPos) {
-        novaOrdenacao[t]++;
-      }
-    });
-    
-    novaOrdenacao[tipo] = novaPos;
-    setOrdenacaoEventos(novaOrdenacao);
-  };
 
   const toggleCong = (id: string) => {
     setSelectedCongs((s) => (s.includes(id) ? s.filter((i) => i !== id) : [...s, id]));
@@ -634,16 +600,6 @@ export default function Listas() {
           >
             Preview
           </button>
-          <button
-            onClick={() => setAbaGerenciar('configuracoes')}
-            className={`px-4 py-2 font-medium ${
-              abaGerenciar === 'configuracoes'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Configurações
-          </button>
         </div>
 
         {/* ABA: REUNIÕES */}
@@ -733,7 +689,7 @@ export default function Listas() {
                               <th className="px-4 py-2 text-left">Data</th>
                               <th className="px-4 py-2 text-left">Hora</th>
                               <th className="px-4 py-2 text-left">Localidade</th>
-                              <th className="px-4 py-2 text-left">{['Reunião Extra', 'Reunião Ministerial', 'Reunião Setorial'].includes(tipoReuniao) ? 'Descrição' : 'Irmão'}</th>
+                              <th className="px-4 py-2 text-left">Irmão</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -755,7 +711,7 @@ export default function Listas() {
                                 <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td className="px-4 py-2">{e.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                                <td className="px-4 py-2">{['Reunião Extra', 'Reunião Ministerial', 'Reunião Setorial'].includes(tipoReuniao) ? (e.descricao || '—') : (e.anciaoAtende || '—')}</td>
+                                <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1034,158 +990,7 @@ export default function Listas() {
           </div>
         )}
 
-        {/* ABA: CONFIGURAÇÕES */}
-        {abaGerenciar === 'configuracoes' && (
-          <div className="space-y-8">
-            {/* SEÇÃO: ORDENAÇÃO DE EVENTOS */}
-            <div className="glass-card rounded-lg p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Ordem de Exibição de Eventos</h3>
-                <p className="text-xs text-muted-foreground">Arraste ou use as setas para reordenar</p>
-              </div>
-
-              {/* Eventos */}
-              {eventosReuniao.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground mb-3">Reuniões e Eventos:</p>
-                  {getOrdenTipos([...new Set(eventosReuniao.map(e => e.subtipoReuniao))].sort()).map((tipo, index) => (
-                    <div key={tipo} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => atualizarOrdenTipo(tipo, index - 1)}
-                          disabled={index === 0}
-                          className="p-1 hover:bg-primary/20 disabled:opacity-50 rounded transition-colors"
-                          title="Mover para cima"
-                        >
-                          ⬆️
-                        </button>
-                        <button
-                          onClick={() => atualizarOrdenTipo(tipo, index + 1)}
-                          disabled={index === getOrdenTipos([...new Set(eventosReuniao.map(e => e.subtipoReuniao))].sort()).length - 1}
-                          className="p-1 hover:bg-primary/20 disabled:opacity-50 rounded transition-colors"
-                          title="Mover para baixo"
-                        >
-                          ⬇️
-                        </button>
-                      </div>
-                      <span className="font-medium text-foreground flex-1">{tipo}</span>
-                      <Badge variant="secondary" className="text-xs">{index + 1}</Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Reforços */}
-              {reforcosSalvos.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground mb-3 pt-4">Reforços:</p>
-                  {getOrdenTipos([...new Set(reforcosSalvos.map(r => `reforco-${r.tipo}`))].sort()).map((tipo, index) => {
-                    const tipoBase = tipo.replace('reforco-', '');
-                    return (
-                      <div key={tipo} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => atualizarOrdenTipo(tipo, index - 1)}
-                            disabled={index === 0}
-                            className="p-1 hover:bg-primary/20 disabled:opacity-50 rounded transition-colors"
-                            title="Mover para cima"
-                          >
-                            ⬆️
-                          </button>
-                          <button
-                            onClick={() => atualizarOrdenTipo(tipo, index + 1)}
-                            disabled={index === getOrdenTipos([...new Set(reforcosSalvos.map(r => `reforco-${r.tipo}`))].sort()).length - 1}
-                            className="p-1 hover:bg-primary/20 disabled:opacity-50 rounded transition-colors"
-                            title="Mover para baixo"
-                          >
-                            ⬇️
-                          </button>
-                        </div>
-                        <span className="font-medium text-foreground flex-1">Reforço - {tipoBase}</span>
-                        <Badge variant="secondary" className="text-xs">{index + 1}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* SEÇÃO: CONFIGURAÇÕES DE ESTILO */}
-            <div className="glass-card rounded-lg p-6 space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Configurações de Estilo da Pré-visualização</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Tamanho da Fonte */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Tamanho da Fonte</Label>
-                  <select
-                    value={estiloConfig.tamanhoFonte}
-                    onChange={(e) => setEstiloConfig({ ...estiloConfig, tamanhoFonte: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="pequeno">Pequeno (10px)</option>
-                    <option value="normal">Normal (12px)</option>
-                    <option value="grande">Grande (14px)</option>
-                  </select>
-                </div>
-
-                {/* Altura da Linha */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Altura da Linha</Label>
-                  <select
-                    value={estiloConfig.alturaLinha}
-                    onChange={(e) => setEstiloConfig({ ...estiloConfig, alturaLinha: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="compacto">Compacto (1.2)</option>
-                    <option value="normal">Normal (1.5)</option>
-                    <option value="espaçoso">Espaçoso (1.8)</option>
-                  </select>
-                </div>
-
-                {/* Espaçamento entre Linhas */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Espaçamento entre Seções</Label>
-                  <select
-                    value={estiloConfig.espaçamentoParagrafo}
-                    onChange={(e) => setEstiloConfig({ ...estiloConfig, espaçamentoParagrafo: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="minimo">Mínimo (0.5rem)</option>
-                    <option value="normal">Normal (1rem)</option>
-                    <option value="generoso">Generoso (1.5rem)</option>
-                  </select>
-                </div>
-
-                {/* Negrito */}
-                <div className="space-y-2 flex flex-col justify-end">
-                  <label className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border cursor-pointer hover:bg-muted/70 transition-colors">
-                    <Checkbox
-                      checked={estiloConfig.negrito}
-                      onCheckedChange={(checked) => setEstiloConfig({ ...estiloConfig, negrito: !!checked })}
-                    />
-                    <span className="font-medium text-foreground">Aplicar Negrito nos Títulos</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Preview de Estilo */}
-              <div className="mt-6 p-4 bg-white rounded-lg border-2 border-border">
-                <p 
-                  style={{
-                    fontSize: estiloConfig.tamanhoFonte === 'pequeno' ? '10px' : estiloConfig.tamanhoFonte === 'grande' ? '14px' : '12px',
-                    lineHeight: estiloConfig.alturaLinha === 'compacto' ? 1.2 : estiloConfig.alturaLinha === 'espaçoso' ? 1.8 : 1.5,
-                    fontWeight: estiloConfig.negrito ? 'bold' : 'normal',
-                  }}
-                  className="text-gray-900"
-                >
-                  PREVIEW: Este é um exemplo de como seu texto aparecerá na pré-visualização
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* ABA: PREVIEW */}
         {abaGerenciar === 'preview' && (
           <div className="space-y-6">
             {eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0 ? (
@@ -1245,43 +1050,36 @@ export default function Listas() {
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
                 <div className="border-2 border-border rounded-lg overflow-hidden">
-                  <div 
-                    className="bg-white p-8 space-y-6" 
-                    ref={previewRef}
-                    style={{
-                      fontSize: estiloConfig.tamanhoFonte === 'pequeno' ? '10px' : estiloConfig.tamanhoFonte === 'grande' ? '14px' : '12px',
-                      lineHeight: estiloConfig.alturaLinha === 'compacto' ? 1.2 : estiloConfig.alturaLinha === 'espaçoso' ? 1.8 : 1.5,
-                    }}
-                  >
+                  <div className="bg-white p-8 space-y-6" ref={previewRef}>
                     {/* CABEÇALHO */}
                     <div className="text-center space-y-1 pb-4 border-b-2 border-gray-800">
-                      <div className={`text-xs font-semibold tracking-wider ${estiloConfig.negrito ? 'font-bold' : ''}`}>CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-                      <div className={`text-xs font-semibold tracking-wider ${estiloConfig.negrito ? 'font-bold' : ''}`}>{
+                      <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
+                      <div className="text-xs font-semibold tracking-wider">{
                         congregacoes[0]?.nome.toLowerCase().includes('central')
                           ? `Administração|${congregacoes[0]?.cidade.toUpperCase()}`
                           : congregacoes[0]?.nome.toUpperCase() || 'ADMINISTRAÇÃO'
                       } - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
-                      <div className={`text-sm font-bold mt-2 ${estiloConfig.negrito ? 'font-black' : ''}`}>{listaEditando?.nome || 'LISTA'}</div>
+                      <div className="text-sm font-bold mt-2">{listaEditando?.nome || 'LISTA'}</div>
                     </div>
 
-                    {/* EVENTOS SELECIONADOS - ORDENADOS */}
+                    {/* EVENTOS SELECIONADOS */}
                     {eventosParaSelecionar.length > 0 && (
-                      <div style={{ marginBottom: estiloConfig.espaçamentoParagrafo === 'minimo' ? '0.5rem' : estiloConfig.espaçamentoParagrafo === 'generoso' ? '1.5rem' : '1rem' }}>
-                        {getOrdenTipos([...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))]).map(tipo => {
+                      <div className="space-y-4">
+                        {[...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))].sort().map(tipo => {
                           const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
                           return (
                             <div key={tipo} className="space-y-2">
                               <div className="flex items-center justify-between pb-2 border-b-2 border-gray-900">
-                                <h5 style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="text-sm text-gray-900 uppercase">{tipo}</h5>
+                                <h5 className="font-bold text-sm text-gray-900 uppercase">{tipo}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-200 border border-gray-400">
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">DATA</th>
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-center text-sm text-gray-900">HORA</th>
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">LOCALIDADE</th>
-                                    {tipo !== 'Reuniões' && <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">{['Reunião Extra', 'Reunião Ministerial', 'Reunião Setorial'].includes(tipo) ? 'DESCRIÇÃO' : 'ANCIÃO'}</th>}
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">DATA</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-center text-sm text-gray-900">HORA</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">LOCALIDADE</th>
+                                    {tipo !== 'Reuniões' && <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">ANCIÃO</th>}
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1296,7 +1094,7 @@ export default function Listas() {
                                         <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{dataBR} {diaSemana}</td>
                                         <td className="border border-gray-400 px-4 py-3 text-center text-sm text-gray-900">{e.horario || '-'}</td>
                                         <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{congregacao?.cidade || '-'}</td>
-                                        {tipo !== 'Reuniões' && <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{['Reunião Extra', 'Reunião Ministerial', 'Reunião Setorial'].includes(tipo) ? (e.descricao || '-') : (e.anciaoAtende || '-')}</td>}
+                                        {tipo !== 'Reuniões' && <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{e.anciaoAtende || '-'}</td>}
                                       </tr>
                                     );
                                   })}
@@ -1308,25 +1106,24 @@ export default function Listas() {
                       </div>
                     )}
 
-                    {/* REFORÇOS SELECIONADOS - ORDENADOS */}
+                    {/* REFORÇOS SELECIONADOS */}
                     {reforcoParaSelecionar.length > 0 && (
-                      <div style={{ marginBottom: estiloConfig.espaçamentoParagrafo === 'minimo' ? '0.5rem' : estiloConfig.espaçamentoParagrafo === 'generoso' ? '1.5rem' : '1rem' }}>
-                        {getOrdenTipos([...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => `reforco-${r.tipo}`))]).map(tipo => {
-                          const tipoBase = tipo.replace('reforco-', '');
-                          const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipoBase && reforcoParaSelecionar.includes(r.id));
+                      <div className="space-y-4">
+                        {[...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))].sort().map(tipo => {
+                          const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
                           return (
                             <div key={tipo} className="space-y-2">
                               <div className="flex items-center justify-between pb-2 border-b-2 border-gray-900">
-                                <h5 style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="text-sm text-gray-900 uppercase">REFORÇO - {tipoBase}</h5>
+                                <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {tipo}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-200 border border-gray-400">
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">DATA</th>
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-center text-sm text-gray-900">HORA</th>
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">LOCALIDADE</th>
-                                    <th style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="border border-gray-400 px-4 py-3 text-left text-sm text-gray-900">IRMÃO</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">DATA</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-center text-sm text-gray-900">HORA</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">LOCALIDADE</th>
+                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">IRMÃO</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1355,10 +1152,10 @@ export default function Listas() {
 
                     {/* RODAPÉ: AVISOS */}
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                      <div style={{ marginTop: estiloConfig.espaçamentoParagrafo === 'minimo' ? '0.5rem' : estiloConfig.espaçamentoParagrafo === 'generoso' ? '1.5rem' : '1rem', paddingTop: '1rem' }} className="space-y-2 border-t-2 border-gray-900">
+                      <div className="space-y-2 border-t-2 border-gray-900 pt-4 mt-6">
                         {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
                           <div key={aviso.id} className="space-y-1">
-                            <p style={{ fontWeight: estiloConfig.negrito ? 'bold' : 'normal' }} className="text-xs text-gray-900 uppercase">{aviso.titulo}</p>
+                            <p className="font-bold text-xs text-gray-900 uppercase">{aviso.titulo}</p>
                             <p className="text-xs text-gray-800 leading-relaxed">{aviso.assunto}</p>
                           </div>
                         ))}
@@ -1772,9 +1569,11 @@ export default function Listas() {
           <div ref={previewRef} className="glass-card rounded-xl p-8 space-y-6 bg-white">
           {/* Cabeçalho do Documento */}
           <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
-            <div className="text-lg font-black tracking-wide">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-            <div className="text-sm font-semibold">LISTA DE BATISMOS E DIVERSOS</div>
-            <div className="text-sm font-semibold">ADMINISTRAÇÃO ITUIUTABA</div>
+            <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
+            <div className="text-sm font-semibold">NO</div>
+            <div className="text-sm font-semibold">BRASIL</div>
+            <div className="text-lg font-bold mt-3">LISTA DE BATISMOS E DIVERSOS</div>
+            <div className="text-sm font-semibold mt-2">ADMINISTRAÇÃO ITUIUTABA</div>
             {(dataInicio || dataFim) && (
               <div className="text-xs font-semibold mt-1">
                 {dataInicio ? new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : 'Início'} A {dataFim ? new Date(dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : 'Fim'}
@@ -1933,14 +1732,6 @@ export default function Listas() {
             {incluirEventos && getEventosFiltrados().length === 0 && incluirReforcos && getReforcosFiltrados().length === 0 && (
               <p className="text-sm text-muted-foreground text-center">Nenhum evento ou reforço no período selecionado.</p>
             )}
-          </div>
-
-          {/* Rodapé do Documento */}
-          <div className="text-center space-y-4 pt-8 border-t-2 border-gray-800">
-            <div className="space-y-1">
-              <div className="text-xs font-semibold">Ituiutaba, MG, _____ de _________________________ de _______</div>
-              <div className="text-xs font-semibold mt-4">(hh:mm)</div>
-            </div>
           </div>
           </div>
         </div>
