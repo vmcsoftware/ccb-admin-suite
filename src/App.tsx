@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Congregacoes from "./pages/Congregacoes";
 import Ministerio from "./pages/Ministerio";
 import Agenda from "./pages/Agenda";
+import SantaCeia from "./pages/SantaCeia";
 import Ensaios from "./pages/Ensaios";
 import Reforcos from "./pages/Reforcos";
 import Relatorios from "./pages/Relatorios";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/congregacoes" element={<Congregacoes />} />
             <Route path="/ministerio" element={<Ministerio />} />
             <Route path="/agenda" element={<Agenda />} />
+            <Route path="/santa-ceia" element={<SantaCeia />} />
             <Route path="/ensaios" element={<Ensaios />} />
             <Route path="/reforcos" element={<Reforcos />} />
             <Route path="/relatorios" element={<Relatorios />} />

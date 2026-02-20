@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { Plus, Trash2, Calendar as CalIcon, Eye, Edit } from 'lucide-react';
+import { 
+  Plus, Trash2, Calendar as CalIcon, Eye, Edit,
+  Users, Cross, Droplets, Music, Heart, Scroll, 
+  Briefcase, Radio, Flame, Zap, Crown
+} from 'lucide-react';
 import { useEventos, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Evento } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -27,9 +31,11 @@ const tiposEvento: Evento['tipo'][] = ['Culto', 'RJM', 'Ensaio', 'Reunião', 'Jo
 const tiposReunioes = [
   'Reuniões',
   'Santa-Ceia',
+  'AGO',
   'Batismo',
   'Reunião para Mocidade',
   'Busca dos Dons',
+  'RJM com Busca dos Dons',
   'Reunião Setorial',
   'Reunião Ministerial',
   'Reunião Extra',
@@ -37,6 +43,97 @@ const tiposReunioes = [
   'Ensaio Regional',
   'Ordenação'
 ];
+
+// Configuração de aparência para cada tipo de reunião
+const tiposReuniaoConfig: Record<string, {
+  icon: React.ComponentType<{ className?: string }>;
+  gradient: string;
+  textColor: string;
+  borderColor: string;
+  description?: string;
+}> = {
+  'Reuniões': {
+    icon: Users,
+    gradient: 'from-blue-500/20 to-blue-600/20',
+    textColor: 'text-blue-700 dark:text-blue-400',
+    borderColor: 'border-blue-300 dark:border-blue-600',
+    description: 'Reunião Geral'
+  },
+  'Santa-Ceia': {
+    icon: Droplets,
+    gradient: 'from-purple-500/20 to-purple-600/20',
+    textColor: 'text-purple-700 dark:text-purple-400',
+    borderColor: 'border-purple-300 dark:border-purple-600',
+  },
+  'AGO': {
+    icon: Users,
+    gradient: 'from-green-600/20 to-emerald-500/20',
+    textColor: 'text-green-700 dark:text-green-400',
+    borderColor: 'border-green-300 dark:border-green-600',
+    description: 'Assembléia Geral Ordinária'
+  },
+  'Batismo': {
+    icon: Droplets,
+    gradient: 'from-cyan-500/20 to-blue-500/20',
+    textColor: 'text-cyan-700 dark:text-cyan-400',
+    borderColor: 'border-cyan-300 dark:border-cyan-600',
+  },
+  'Reunião para Mocidade': {
+    icon: Zap,
+    gradient: 'from-yellow-500/20 to-orange-500/20',
+    textColor: 'text-yellow-700 dark:text-yellow-400',
+    borderColor: 'border-yellow-300 dark:border-yellow-600',
+  },
+  'Busca dos Dons': {
+    icon: Heart,
+    gradient: 'from-red-500/20 to-pink-500/20',
+    textColor: 'text-red-700 dark:text-red-400',
+    borderColor: 'border-red-300 dark:border-red-600',
+  },
+  'RJM com Busca dos Dons': {
+    icon: Crown,
+    gradient: 'from-purple-600/20 to-pink-500/20',
+    textColor: 'text-purple-700 dark:text-purple-400',
+    borderColor: 'border-purple-300 dark:border-purple-600',
+    description: 'RJM com foco em Busca dos Dons'
+  },
+  'Reunião Setorial': {
+    icon: Briefcase,
+    gradient: 'from-slate-500/20 to-gray-500/20',
+    textColor: 'text-slate-700 dark:text-slate-400',
+    borderColor: 'border-slate-300 dark:border-slate-600',
+  },
+  'Reunião Ministerial': {
+    icon: Crown,
+    gradient: 'from-amber-500/20 to-orange-500/20',
+    textColor: 'text-amber-700 dark:text-amber-400',
+    borderColor: 'border-amber-300 dark:border-amber-600',
+  },
+  'Reunião Extra': {
+    icon: Radio,
+    gradient: 'from-indigo-500/20 to-blue-500/20',
+    textColor: 'text-indigo-700 dark:text-indigo-400',
+    borderColor: 'border-indigo-300 dark:border-indigo-600',
+  },
+  'Culto para Jovens': {
+    icon: Flame,
+    gradient: 'from-orange-500/20 to-red-500/20',
+    textColor: 'text-orange-700 dark:text-orange-400',
+    borderColor: 'border-orange-300 dark:border-orange-600',
+  },
+  'Ensaio Regional': {
+    icon: Music,
+    gradient: 'from-green-500/20 to-emerald-500/20',
+    textColor: 'text-green-700 dark:text-green-400',
+    borderColor: 'border-green-300 dark:border-green-600',
+  },
+  'Ordenação': {
+    icon: Cross,
+    gradient: 'from-rose-500/20 to-pink-500/20',
+    textColor: 'text-rose-700 dark:text-rose-400',
+    borderColor: 'border-rose-300 dark:border-rose-600',
+  }
+};
 
 const tipoCor: Record<Evento['tipo'], string> = {
   Culto: 'bg-primary/10 text-primary border-primary/20',
@@ -579,6 +676,37 @@ export default function Agenda() {
                   </div>
                 </>
               )}
+              {subtipoReunioes === 'RJM com Busca dos Dons' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da RJM com Busca dos Dons</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
               <div>
                 <Label>Descrição</Label>
                 <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Opcional" />
@@ -592,16 +720,44 @@ export default function Agenda() {
       </div>
 
       {/* Botões de Tipos de Reuniões */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        {tiposReunioes.map((tipo) => (
-          <button
-            key={tipo}
-            onClick={() => abrirComTipoReunioes(tipo)}
-            className="px-3 py-2 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent-foreground border border-accent/30 transition-colors text-sm font-medium"
-          >
-            {tipo}
-          </button>
-        ))}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Tipos de Reuniões</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {tiposReunioes.map((tipo) => {
+            const config = tiposReuniaoConfig[tipo];
+            const Icon = config.icon;
+            const eventosCount = eventos.filter(e => e.subtipoReuniao === tipo).length;
+            
+            return (
+              <button
+                key={tipo}
+                onClick={() => abrirComTipoReunioes(tipo)}
+                className={`group relative glass-card rounded-xl p-4 border-2 transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 bg-gradient-to-br ${config.gradient} ${config.borderColor} overflow-hidden`}
+              >
+                {/* Efeito de fundo animado */}
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Conteúdo */}
+                <div className="relative z-10 flex flex-col items-center space-y-2">
+                  {/* Ícone */}
+                  <Icon className={`h-8 w-8 ${config.textColor} transition-transform group-hover:scale-110`} />
+                  
+                  {/* Título */}
+                  <p className={`text-xs sm:text-sm font-semibold ${config.textColor} text-center leading-tight`}>
+                    {tipo}
+                  </p>
+                  
+                  {/* Badge com contador */}
+                  {eventosCount > 0 && (
+                    <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold ${config.borderColor} border`}>
+                      <span className={config.textColor}>{eventosCount}</span>
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Modal de Visualização de Detalhes */}

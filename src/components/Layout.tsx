@@ -12,6 +12,7 @@ import {
   Music,
   BarChart3,
   Trophy,
+  Droplet,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/congregacoes', label: 'Congregações', icon: Building2 },
   { path: '/ministerio', label: 'Ministério', icon: Users },
   { path: '/agenda', label: 'Agenda', icon: Calendar },
+  { path: '/santa-ceia', label: 'Santa Ceia', icon: Droplet },
   { path: '/ensaios', label: 'Ensaios', icon: Music },
   { path: '/reforcos', label: 'Reforços', icon: ShieldCheck },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },

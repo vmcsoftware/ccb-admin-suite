@@ -101,7 +101,37 @@ function useFirestoreCollection<T extends { id: string }>(collectionName: string
   };
 
   const remover = async (id: string) => {
-    await deleteDoc(doc(db, collectionName, id));
+    try {
+      console.log(`[${collectionName}] Deletando documento: ${id}`);
+      await deleteDoc(doc(db, collectionName, id));
+      console.log(`[${collectionName}] Documento deletado com sucesso: ${id}`);
+      
+      // Aguardar atualização do listener (máx 2 segundos)
+      return new Promise<void>((resolve) => {
+        const maxAttempts = 20; // 20 tentativas de 100ms = 2 segundos
+        let attempts = 0;
+        
+        const checkDeletion = setInterval(() => {
+          attempts++;
+          const isDeleted = !items.some((item: any) => item.id === id);
+          
+          if (isDeleted || attempts >= maxAttempts) {
+            clearInterval(checkDeletion);
+            if (isDeleted) {
+              console.log(`[${collectionName}] Confirmado: documento ${id} foi removido do estado`);
+            } else {
+              console.warn(`[${collectionName}] Aviso: documento ${id} ainda está na lista após 2s`);
+            }
+            resolve();
+          }
+        }, 100);
+      });
+    } catch (error) {
+      console.error(`[${collectionName}] Erro ao deletar documento ${id}:`, error);
+      console.error('Firebase Error Code:', (error as any)?.code);
+      console.error('Firebase Error Message:', (error as any)?.message);
+      throw error;
+    }
   };
 
   const atualizar = async (id: string, data: Partial<T>) => {

@@ -32,7 +32,7 @@ export default function Reforcos() {
   const [editingReforcoId, setEditingReforcoId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
-  const [showMembrosDropdown, setShowMembrosDropdown] = useState(false);
+  const [showListaMembros, setShowListaMembros] = useState(false);
   const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
   const [filterTipo, setFilterTipo] = useState<'Culto' | 'RJM' | 'Todos'>('Todos');
   const [form, setForm] = useState({
@@ -44,6 +44,7 @@ export default function Reforcos() {
     membrosOutrasLocalidades: [] as Array<{ nome: string; localidade: string; ministerio: TipoMinisterio }>,
     observacoes: '',
   });
+  const [horarioAutoPreenchido, setHorarioAutoPreenchido] = useState(false);
 
   const toggleMembro = (id: string) => {
     setForm((f) => ({
@@ -56,14 +57,24 @@ export default function Reforcos() {
   const validateReforco = (data: string, tipo: Reforco['tipo'], congregacaoId: string): string | null => {
     if (!data) return null;
 
+    // Obter a congregação
+    const cong = congregacoes.find((c) => c.id === congregacaoId);
+
+    // Validar se RJM está cadastrado na congregação
+    if (tipo === 'RJM') {
+      const temRJM = cong?.diasRJM && cong.diasRJM.length > 0;
+      if (!temRJM) {
+        const congNome = cong?.nome || 'Congregação';
+        return `RJM não está cadastrado para ${congNome}. Configure os horários de RJM no cadastro da congregação antes de agendar reforços.`;
+      }
+    }
+
     const selectedDate = new Date(data + 'T12:00:00');
     const selectedMonth = selectedDate.getMonth();
     const selectedYear = selectedDate.getFullYear();
     const dayOfWeek = selectedDate.getDay(); // 0 = domingo, 4 = quinta-feira
     const isFifthDay = dayOfWeek === 4; // quinta-feira
 
-    // Obter a congregação
-    const cong = congregacoes.find((c) => c.id === congregacaoId);
     const isCentral = cong?.nome.toLowerCase().includes('central') && cong?.cidade === 'Ituiutaba';
 
     // Regra especial: Permitir múltiplos reforços apenas na Central de Ituiutaba para quinta-feira
@@ -111,6 +122,7 @@ export default function Reforcos() {
     setShowOutraLocalidade(false);
     setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
     setEditingReforcoId(null);
+    setHorarioAutoPreenchido(false);
     setOpen(false);
   };
 
@@ -125,11 +137,21 @@ export default function Reforcos() {
       membrosOutrasLocalidades: reforco.membrosOutrasLocalidades || [],
       observacoes: reforco.observacoes || '',
     });
+    setHorarioAutoPreenchido(false);
     setOpen(true);
   };
 
-  const getCongNome = (id: string) => congregacoes.find((c) => c.id === id)?.nome || '—';
+  const getCongNome = (id: string) => {
+    const cong = congregacoes.find((c) => c.id === id);
+    if (!cong) return '—';
+    return cong.nome.toLowerCase().includes('central') ? `${cong.nome} - ${cong.cidade}` : cong.nome;
+  };
   const getMembroNome = (id: string) => membros.find((m) => m.id === id)?.nome || '—';
+
+  // Verificar se RJM está cadastrado para a congregação selecionada
+  const temRJMCadastrado = form.congregacaoId 
+    ? congregacoes.find(c => c.id === form.congregacaoId)?.diasRJM?.length ?? 0 > 0
+    : false;
 
   const getDiaSemana = (data: string) => {
     const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -150,7 +172,7 @@ export default function Reforcos() {
     });
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col lg:flex-row gap-6">
       <div className="flex-1 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -162,20 +184,21 @@ export default function Reforcos() {
             if (!isOpen) {
               setValidationError(null);
               setShowOutraLocalidade(false);
-              setShowMembrosDropdown(false);
+              setShowListaMembros(false);
               setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
               setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
               setEditingReforcoId(null);
+              setHorarioAutoPreenchido(false);
             }
           }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Reforço</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg max-h-[calc(100vh-100px)] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">{editingReforcoId ? 'Editar Reforço' : 'Novo Reforço'}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 {validationError && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -187,7 +210,15 @@ export default function Reforcos() {
                   <Select 
                     value={form.congregacaoId} 
                     onValueChange={(v) => {
-                      setForm({ ...form, congregacaoId: v });
+                      // Se RJM estava selecionado mas a nova congregação não tem RJM, volta para Culto
+                      const novasCong = congregacoes.find(c => c.id === v);
+                      const novaTemRJM = novasCong?.diasRJM && novasCong.diasRJM.length > 0;
+                      
+                      setForm({ 
+                        ...form, 
+                        congregacaoId: v,
+                        tipo: (form.tipo === 'RJM' && !novaTemRJM) ? 'Culto' : form.tipo
+                      });
                       setValidationError(null);
                     }}
                   >
@@ -215,29 +246,58 @@ export default function Reforcos() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Culto">Culto</SelectItem>
-                      <SelectItem value="RJM">RJM</SelectItem>
+                      <SelectItem value="RJM" disabled={!form.congregacaoId || !temRJMCadastrado}>
+                        RJM {(!form.congregacaoId || !temRJMCadastrado) ? '(não configurado)' : ''}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {form.congregacaoId && !temRJMCadastrado && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
+                      ⚠️ RJM não está configurado para esta congregação
+                    </p>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>Data</Label>
                     <Input 
                       type="date" 
                       value={form.data} 
                       onChange={(e) => {
-                        setForm({ ...form, data: e.target.value });
+                        const novaData = e.target.value;
+                        setForm(prev => ({ ...prev, data: novaData }));
                         setValidationError(null);
+                        
+                        // Auto-preencher horário baseado no dia da semana
+                        if (form.congregacaoId && novaData) {
+                          const dataObj = new Date(novaData + 'T12:00:00');
+                          const diaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dataObj.getDay()];
+                          const cong = congregacoes.find(c => c.id === form.congregacaoId);
+                          
+                          const diasRelevantes = form.tipo === 'Culto' ? cong?.diasCultos : cong?.diasRJM;
+                          const diaEncontrado = diasRelevantes?.find(d => d.diasemana === diaSemana);
+                          
+                          if (diaEncontrado && diaEncontrado.horario) {
+                            setForm(prev => ({ ...prev, horario: diaEncontrado.horario }));
+                            setHorarioAutoPreenchido(true);
+                          }
+                        }
                       }} 
                     />
                   </div>
                   <div>
-                    <Label>Horário</Label>
+                    <Label className="flex items-center gap-2">
+                      Horário
+                      {horarioAutoPreenchido && (
+                        <Badge variant="secondary" className="text-xs">Auto</Badge>
+                      )}
+                    </Label>
                     <Input 
                       type="time" 
                       value={form.horario} 
                       onChange={(e) => {
                         setForm({ ...form, horario: e.target.value });
+                        setHorarioAutoPreenchido(false);
                       }} 
                     />
                   </div>
@@ -273,70 +333,63 @@ export default function Reforcos() {
                   ) : null;
                 })()}
                 {membros.length > 0 && (
-                  <div>
-                    <Label>Irmão</Label>
-                    <div 
-                      className="mt-2 relative"
-                      onClick={() => setShowMembrosDropdown(!showMembrosDropdown)}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowListaMembros(!showListaMembros)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
                     >
-                      <button
-                        type="button"
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm flex items-center justify-between hover:bg-muted/50 transition-colors"
-                      >
-                        <span className="text-muted-foreground">
-                          {form.membros.length > 0 ? `${form.membros.length} selecionado(s)` : 'Selecione'}
-                        </span>
-                        <span className="text-lg">▼</span>
-                      </button>
-                      {showMembrosDropdown && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
-                          <div className="space-y-2 p-3">
-                            {[...membros]
-                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-                              .map((m) => (
-                              <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-2 rounded">
-                                <Checkbox
-                                  checked={form.membros.includes(m.id)}
-                                  onCheckedChange={() => toggleMembro(m.id)}
-                                />
-                                <span className="text-foreground">{m.nome}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      <span>Irmão {form.membros.length > 0 && `(${form.membros.length})`}</span>
+                      <span className="text-xs text-muted-foreground">{showListaMembros ? '▼' : '▶'}</span>
+                    </button>
+                    {showListaMembros && (
+                      <div className="space-y-2 max-h-32 overflow-y-auto rounded-lg border border-border p-2 bg-muted/20">
+                        {[...membros]
+                          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                          .map((m) => (
+                          <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/30 p-1 rounded transition-colors">
+                            <Checkbox
+                              checked={form.membros.includes(m.id)}
+                              onCheckedChange={() => toggleMembro(m.id)}
+                            />
+                            <span className="text-foreground">{m.nome}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
                       checked={showOutraLocalidade}
-                      onCheckedChange={setShowOutraLocalidade}
+                      onCheckedChange={(checked) => setShowOutraLocalidade(checked === true)}
                     />
                     <span className="text-sm font-medium">Irmão de outra localidade</span>
                   </label>
                 </div>
                 {showOutraLocalidade && (
-                  <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/30 rounded-lg">
                     <div>
-                      <Label className="text-sm">Nome do Irmão</Label>
+                      <Label className="text-xs sm:text-sm">Nome do Irmão</Label>
                       <Input
                         placeholder="Digite o nome"
                         value={novoMembroOutraLocalidade.nome}
                         onChange={(e) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, nome: e.target.value })}
+                        className="text-sm"
                       />
                     </div>
                     <div>
-                      <Label className="text-sm">Localidade</Label>
+                      <Label className="text-xs sm:text-sm">Localidade</Label>
                       <Input
                         placeholder="Digite a localidade"
                         value={novoMembroOutraLocalidade.localidade}
                         onChange={(e) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, localidade: e.target.value })}
+                        className="text-sm"
                       />
                     </div>
-                    <div className="col-span-2">
-                      <Label className="text-sm">Ministério</Label>
+                    <div className="col-span-1 sm:col-span-2">
+                      <Label className="text-xs sm:text-sm">Ministério</Label>
                       <Select 
                         value={novoMembroOutraLocalidade.ministerio} 
                         onValueChange={(v) => setNovoMembroOutraLocalidade({ ...novoMembroOutraLocalidade, ministerio: v as TipoMinisterio })}
@@ -350,7 +403,7 @@ export default function Reforcos() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1 sm:col-span-2">
                       <Button
                         type="button"
                         size="sm"
@@ -364,7 +417,7 @@ export default function Reforcos() {
                             setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
                           }
                         }}
-                        className="w-full"
+                        className="w-full text-xs sm:text-sm"
                       >
                         + Adicionar Irmão
                       </Button>
@@ -406,12 +459,12 @@ export default function Reforcos() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['Todos', 'Culto', 'RJM'] as const).map((tipo) => (
-            <button
-              key={tipo}
-              onClick={() => setFilterTipo(tipo as any)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              <button
+                key={tipo}
+                onClick={() => setFilterTipo(tipo)}
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
                 filterTipo === tipo
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -430,46 +483,47 @@ export default function Reforcos() {
         ) : (
           <div className="space-y-3">
             {reforçosOrdenados.map((r) => (
-              <div key={r.id} className="glass-card stat-card-hover rounded-xl p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Badge variant="outline" className={r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}>
+              <div key={r.id} className="glass-card stat-card-hover rounded-xl p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="outline" className={`text-xs sm:text-sm flex-shrink-0 ${r.tipo === 'Culto' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-accent/20 text-accent-foreground border-accent/30'}`}>
                         {r.tipo}
                       </Badge>
-                      <span className="text-sm font-medium text-foreground">{getCongNome(r.congregacaoId)}</span>
+                      <span className="text-xs sm:text-sm font-medium text-foreground truncate">{getCongNome(r.congregacaoId)}</span>
                     </div>
-                    <div className="text-sm text-muted-foreground space-y-1">
+                    <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
                       <p>
                         <span className="font-medium">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                         {' • '}
-                        <span>{getDiaSemana(r.data)}</span>
+                        <span className="hidden sm:inline">{getDiaSemana(r.data)}</span>
+                        <span className="sm:hidden">{getDiaSemana(r.data).slice(0, 3)}</span>
                         {r.horario && (' • ' + r.horario)}
                       </p>
-                      {r.observacoes && <p className="italic">{r.observacoes}</p>}
+                      {r.observacoes && <p className="italic line-clamp-2">{r.observacoes}</p>}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(r)} className="text-muted-foreground hover:text-primary transition-colors p-1 flex-shrink-0" title="Editar reforço">
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => handleEdit(r)} className="text-muted-foreground hover:text-primary transition-colors p-1" title="Editar reforço">
                       <Edit2 className="h-4 w-4" />
                     </button>
-                    <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1 flex-shrink-0" title="Deletar reforço">
+                    <button onClick={() => remover(r.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Deletar reforço">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
                 {(r.membros.length > 0 || (r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0)) && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-1.5">
                     {[...r.membros]
                       .map((mid) => ({ mid, nome: getMembroNome(mid) }))
                       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
                       .map(({ mid, nome }) => (
-                        <span key={mid} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                        <span key={mid} className="rounded-full bg-muted px-2 sm:px-2.5 py-0.5 text-xs text-muted-foreground">
                           {nome}
                         </span>
                     ))}
                     {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
-                      <span key={`outro-${idx}`} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">
+                      <span key={`outro-${idx}`} className="rounded-full bg-primary/10 px-2 sm:px-2.5 py-0.5 text-xs text-primary">
                         {m.nome} ({m.localidade} - {m.ministerio})
                       </span>
                     ))}
@@ -482,25 +536,26 @@ export default function Reforcos() {
       </div>
 
       {/* Sidebar com tabela de reforços */}
-      <div className="w-96 hidden xl:block">
-        <Card className="sticky top-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Reforços Agendados - {filterTipo}</CardTitle>
+      <div className="w-full lg:w-96">
+        <Card className="lg:sticky lg:top-6">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-semibold">Reforços Agendados - {filterTipo}</CardTitle>
           </CardHeader>
           <CardContent>
             {reforçosOrdenados.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">Nenhum reforço agendado</p>
             ) : (
-              <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="space-y-2 max-h-[50vh] sm:max-h-[calc(100vh-200px)] overflow-y-auto">
                 {reforçosOrdenados.map((r) => (
-                  <div key={r.id} className="border border-border rounded-lg p-3 hover:bg-muted/30 transition-colors text-xs space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="font-semibold text-foreground">
+                  <div key={r.id} className="border border-border rounded-lg p-2 sm:p-3 hover:bg-muted/30 transition-colors text-xs space-y-1 sm:space-y-1.5">
+                    <div className="flex items-center justify-between gap-1 sm:gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground text-xs sm:text-sm truncate">
                           {new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </div>
-                        <div className="text-muted-foreground text-xs">
-                          {getDiaSemana(r.data)}
+                        <div className="text-muted-foreground text-xs truncate">
+                          <span className="hidden sm:inline">{getDiaSemana(r.data)}</span>
+                          <span className="sm:hidden">{getDiaSemana(r.data).slice(0, 3)}</span>
                           {r.horario && (' • ' + r.horario)}
                         </div>
                       </div>
@@ -511,23 +566,23 @@ export default function Reforcos() {
                         {r.tipo}
                       </Badge>
                     </div>
-                    <div className="text-muted-foreground font-medium">
+                    <div className="text-muted-foreground font-medium text-xs sm:text-sm truncate">
                       {getCongNome(r.congregacaoId)}
                     </div>
                     {(r.membros.length > 0 || (r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0)) && (
-                      <div className="pt-1.5 border-t border-border">
+                      <div className="pt-1 sm:pt-1.5 border-t border-border">
                         <p className="text-muted-foreground font-medium mb-1">Irmãos:</p>
                         <div className="flex flex-wrap gap-1">
                           {[...r.membros]
                             .map((mid) => ({ mid, nome: getMembroNome(mid) }))
                             .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
                             .map(({ mid, nome }) => (
-                              <span key={mid} className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+                              <span key={mid} className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground text-xs truncate">
                                 {nome}
                               </span>
                             ))}
                           {r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.map((m, idx) => (
-                            <span key={`outro-${idx}`} className="rounded bg-primary/10 px-1.5 py-0.5 text-primary text-xs">
+                            <span key={`outro-${idx}`} className="rounded bg-primary/10 px-1.5 py-0.5 text-primary text-xs truncate">
                               {m.nome} ({m.localidade} - {m.ministerio})
                             </span>
                           ))}
@@ -535,7 +590,7 @@ export default function Reforcos() {
                       </div>
                     )}
                     {r.observacoes && (
-                      <div className="pt-1.5 border-t border-border text-muted-foreground italic text-xs">
+                      <div className="pt-1 sm:pt-1.5 border-t border-border text-muted-foreground italic text-xs line-clamp-2">
                         {r.observacoes}
                       </div>
                     )}

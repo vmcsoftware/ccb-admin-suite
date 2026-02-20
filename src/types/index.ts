@@ -146,3 +146,16 @@ export interface ResultadoEnsaioRegional {
   organistas: number;
   observacoes?: string;
 }
+
+// Tipos para Configurações de Estilo de Listas
+export interface ConfiguracaoEstiloLista {
+  tamanhoFonte: 'pequeno' | 'normal' | 'grande';
+  alturaLinha: 'compacto' | 'normal' | 'espaçoso';
+  espaçamentoParagrafo: 'minimo' | 'normal' | 'generoso';
+  negrito: boolean;
+}
+
+// Tipo para ordem de eventos
+export interface OrdenacaoEventos {
+  [tipo: string]: number; // Nome do tipo => posição (número)
+}
