@@ -124,7 +124,7 @@ export default function Listas() {
     if (listaEditando?.ordenacaoEventos) {
       setOrdenacaoEventos(listaEditando.ordenacaoEventos);
     }
-  }, [listaEditando?.id]);
+  }, [listaEditando?.id, listaEditando?.estiloConfig, listaEditando?.ordenacaoEventos]);
 
   // Salvar listas no localStorage
   useEffect(() => {
