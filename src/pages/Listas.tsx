@@ -6,6 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -102,6 +104,16 @@ export default function Listas() {
     alturaLinha: 'normal',
     espaçamentoParagrafo: 'normal',
     negrito: false,
+  });
+
+  // Configuração de preview
+  const [configOpenListas, setConfigOpenListas] = useState(false);
+  const [previewListasConfig, setPreviewListasConfig] = useState({
+    cellHeight: 'normal' as 'pequeno' | 'normal' | 'grande',
+    fontSize: 'normal' as 'pequeno' | 'normal' | 'grande',
+    bold: false,
+    sortBy: 'data' as 'data' | 'congregacao' | 'localidade',
+    eventOrder: ['Reuniões', 'Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'RJM com Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação', 'Reforços', 'RJM Reforços'] as string[],
   });
 
   // Carregar listas do localStorage
@@ -347,9 +359,44 @@ export default function Listas() {
   const getCongregacaoNome = (id: string) => {
     const congregacao = congregacoes.find((c) => c.id === id);
     if (!congregacao) return '';
-    return congregacao.nome.toLowerCase().includes('central')
-      ? congregacao.cidade
-      : congregacao.nome;
+    return `${congregacao.nome} - ${congregacao.cidade}`;
+  };
+
+  const getPaddingClass = () => {
+    switch (previewListasConfig.cellHeight) {
+      case 'pequeno': return 'py-1 px-2';
+      case 'grande': return 'py-4 px-3';
+      default: return 'py-2 px-2.5';
+    }
+  };
+
+  const getFontSizeClass = () => {
+    switch (previewListasConfig.fontSize) {
+      case 'pequeno': return 'text-xs';
+      case 'grande': return 'text-base';
+      default: return 'text-sm';
+    }
+  };
+
+  const getFontWeightClass = () => {
+    return previewListasConfig.bold ? 'font-bold' : 'font-medium';
+  };
+
+  const getSortedEventTypes = (tipos: string[]) => {
+    return tipos.sort((a, b) => {
+      const indexA = previewListasConfig.eventOrder.indexOf(a);
+      const indexB = previewListasConfig.eventOrder.indexOf(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  };
+
+  const reduzirNome = (nome: string) => {
+    if (!nome) return '';
+    const partes = nome.trim().split(/\s+/);
+    if (partes.length <= 1) return nome;
+    return `${partes[0]} ${partes[partes.length - 1]}`;
   };
 
   const gerarPDF = async () => {
@@ -689,7 +736,7 @@ export default function Listas() {
                               <th className="px-4 py-2 text-left">Data</th>
                               <th className="px-4 py-2 text-left">Hora</th>
                               <th className="px-4 py-2 text-left">Localidade</th>
-                              <th className="px-4 py-2 text-left">Irmão</th>
+                              <th className="px-4 py-2 text-left">{tipoReuniao === 'Reunião Ministerial' ? 'Participam' : 'Irmão'}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -711,7 +758,7 @@ export default function Listas() {
                                 <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td className="px-4 py-2">{e.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                                <td className="px-4 py-2">{e.anciaoAtende || '—'}</td>
+                                <td className="px-4 py-2">{tipoReuniao === 'Reunião Ministerial' ? (e.descricao || '—') : (e.anciaoAtende || '—')}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1001,51 +1048,21 @@ export default function Listas() {
             ) : (
               <>
                 {/* CONTROLES DE PREVIEW - NÃO SERÁ INCLUÍDO NO PDF */}
-                <div className="glass-card rounded-lg p-4 flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <select
-                      value={filtroSetor}
-                      onChange={(e) => setFiltroSetor(e.target.value)}
-                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="todos">Todos setores</option>
-                      <option value="setor1">Setor 1</option>
-                      <option value="setor2">Setor 2</option>
-                    </select>
-
-                    <select
-                      value={filtroCategoria}
-                      onChange={(e) => setFiltroCategoria(e.target.value)}
-                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="todas">Todas categorias</option>
-                      <option value="cat1">Categoria 1</option>
-                      <option value="cat2">Categoria 2</option>
-                    </select>
-
-                    <select
-                      value={paginaPreview}
-                      onChange={(e) => setPaginaPreview(e.target.value)}
-                      className="px-3 py-2 rounded border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="1">1 página</option>
-                      <option value="2">2 páginas</option>
-                      <option value="todas">Todas</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground" title="Configurações">
-                      <Settings className="h-5 w-5" />
-                    </button>
-                    <Button 
-                      onClick={gerarPDF} 
-                      disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      <FileText className="h-4 w-4" /> Imprimir
-                    </Button>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <Button 
+                    onClick={() => setConfigOpenListas(true)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Settings className="h-4 w-4" /> Configurar
+                  </Button>
+                  <Button 
+                    onClick={gerarPDF} 
+                    disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <FileText className="h-4 w-4" /> Imprimir
+                  </Button>
                 </div>
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
@@ -1065,21 +1082,21 @@ export default function Listas() {
                     {/* EVENTOS SELECIONADOS */}
                     {eventosParaSelecionar.length > 0 && (
                       <div className="space-y-4">
-                        {[...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))].sort().map(tipo => {
+                        {getSortedEventTypes([...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))]).map(tipo => {
                           const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
                           return (
                             <div key={tipo} className="space-y-2">
-                              <div className="flex items-center justify-between pb-2 border-b-2 border-gray-900">
+                              <div className="flex items-center justify-between pb-2 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">{tipo}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
-                                  <tr className="bg-gray-200 border border-gray-400">
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">DATA</th>
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-center text-sm text-gray-900">HORA</th>
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">LOCALIDADE</th>
-                                    {tipo !== 'Reuniões' && <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">ANCIÃO</th>}
+                                  <tr className="bg-gray-300 border border-gray-900">
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1090,11 +1107,11 @@ export default function Listas() {
                                     const diaSemana = diasSemana[dataObj.getDay()];
                                     const congregacao = congregacoes.find(c => c.id === e.congregacaoId);
                                     return (
-                                      <tr key={e.id} className={`border border-gray-400 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                                        <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{dataBR} {diaSemana}</td>
-                                        <td className="border border-gray-400 px-4 py-3 text-center text-sm text-gray-900">{e.horario || '-'}</td>
-                                        <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{congregacao?.cidade || '-'}</td>
-                                        {tipo !== 'Reuniões' && <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{e.anciaoAtende || '-'}</td>}
+                                      <tr key={e.id} className="border border-gray-900 bg-white">
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                        {tipo !== 'Reuniões' && <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? (e.descricao || '-') : (reduzirNome(e.anciaoAtende) || '-')}</td>}
                                       </tr>
                                     );
                                   })}
@@ -1109,21 +1126,21 @@ export default function Listas() {
                     {/* REFORÇOS SELECIONADOS */}
                     {reforcoParaSelecionar.length > 0 && (
                       <div className="space-y-4">
-                        {[...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))].sort().map(tipo => {
+                        {getSortedEventTypes([...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))]).map(tipo => {
                           const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
                           return (
                             <div key={tipo} className="space-y-2">
-                              <div className="flex items-center justify-between pb-2 border-b-2 border-gray-900">
+                              <div className="flex items-center justify-between pb-2 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {tipo}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
-                                  <tr className="bg-gray-200 border border-gray-400">
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">DATA</th>
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-center text-sm text-gray-900">HORA</th>
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">LOCALIDADE</th>
-                                    <th className="border border-gray-400 px-4 py-3 font-bold text-left text-sm text-gray-900">IRMÃO</th>
+                                  <tr className="bg-gray-300 border border-gray-900">
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1134,11 +1151,11 @@ export default function Listas() {
                                     const diaSemana = diasSemana[dataObj.getDay()];
                                     const congregacao = congregacoes.find(c => c.id === r.congregacaoId);
                                     return (
-                                      <tr key={r.id} className={`border border-gray-400 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                                        <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{dataBR} {diaSemana}</td>
-                                        <td className="border border-gray-400 px-4 py-3 text-center text-sm text-gray-900">{r.horario || '-'}</td>
-                                        <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{congregacao?.cidade || '-'}</td>
-                                        <td className="border border-gray-400 px-4 py-3 text-sm text-gray-900">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
+                                      <tr key={r.id} className="border border-gray-900 bg-white">
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
                                       </tr>
                                     );
                                   })}
@@ -1163,12 +1180,121 @@ export default function Listas() {
                     )}
                   </div>
                 </div>
+
+                {/* DIALOG: CONFIGURAÇÃO DO PREVIEW */}
+                <Dialog open={configOpenListas} onOpenChange={setConfigOpenListas}>
+                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Configurar Visualização</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-6 pr-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="sort-by">Ordenação</Label>
+                          <Select value={previewListasConfig.sortBy} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, sortBy: value as 'data' | 'congregacao' | 'localidade'})}>
+                            <SelectTrigger id="sort-by">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="data">Por Data</SelectItem>
+                              <SelectItem value="congregacao">Por Congregação</SelectItem>
+                              <SelectItem value="localidade">Por Localidade</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="cell-height">Espaçamento de Linhas</Label>
+                          <Select value={previewListasConfig.cellHeight} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, cellHeight: value as 'pequeno' | 'normal' | 'grande'})}>
+                            <SelectTrigger id="cell-height">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pequeno">Pequeno</SelectItem>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="grande">Grande</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="font-size">Tamanho da Fonte</Label>
+                          <Select value={previewListasConfig.fontSize} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, fontSize: value as 'pequeno' | 'normal' | 'grande'})}>
+                            <SelectTrigger id="font-size">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pequeno">Pequeno</SelectItem>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="grande">Grande</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="bold-text" 
+                            checked={previewListasConfig.bold}
+                            onCheckedChange={(checked) => setPreviewListasConfig({...previewListasConfig, bold: checked as boolean})}
+                          />
+                          <Label htmlFor="bold-text" className="cursor-pointer">Negrito</Label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Ordem dos Tipos de Eventos</Label>
+                        <div className="border border-gray-300 rounded p-3 space-y-1 max-h-80 overflow-y-auto">
+                          {previewListasConfig.eventOrder.map((tipo, index) => (
+                            <div key={tipo} className="flex items-center gap-2 text-sm">
+                              <span className="font-medium text-gray-600 w-5">{index + 1}.</span>
+                              <span className="flex-1 truncate">{tipo}</span>
+                              <div className="flex gap-1">
+                                {index > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const novaOrder = [...previewListasConfig.eventOrder];
+                                      [novaOrder[index - 1], novaOrder[index]] = [novaOrder[index], novaOrder[index - 1]];
+                                      setPreviewListasConfig({...previewListasConfig, eventOrder: novaOrder});
+                                    }}
+                                  >
+                                    ↑
+                                  </Button>
+                                )}
+                                {index < previewListasConfig.eventOrder.length - 1 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const novaOrder = [...previewListasConfig.eventOrder];
+                                      [novaOrder[index], novaOrder[index + 1]] = [novaOrder[index + 1], novaOrder[index]];
+                                      setPreviewListasConfig({...previewListasConfig, eventOrder: novaOrder});
+                                    }}
+                                  >
+                                    ↓
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter className="mt-4">
+                      <Button onClick={() => setConfigOpenListas(false)}>Fechar</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
           </div>
         )}
 
         {/* Botão Salvar */}
+
         <div className="flex justify-end gap-2">
           <Button 
             variant="outline" 

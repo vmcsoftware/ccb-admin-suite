@@ -1,12 +1,14 @@
-import { useState, useRef } from 'react';
-import { Plus, Trash2, Check, X, Calendar, Clock, MapPin, Eye, Edit, FileText, Download } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Trash2, Check, X, Calendar, Clock, MapPin, Eye, Edit, FileText, Download, Settings } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import { useEventos, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Evento } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -32,7 +34,7 @@ interface SantaCeiaForm extends Evento {
 }
 
 export default function SantaCeia() {
-  const { eventos, adicionar, remover } = useEventos();
+  const { eventos, adicionar, remover, atualizar } = useEventos();
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const tableRef = useRef<HTMLDivElement>(null);
@@ -46,6 +48,12 @@ export default function SantaCeia() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [selectedSantaCeia, setSelectedSantaCeia] = useState<Evento | null>(null);
   const [editingForm, setEditingForm] = useState<SantaCeiaForm | null>(null);
+  const [showOutraLocalidadeAnciao, setShowOutraLocalidadeAnciao] = useState(false);
+  const [showOutraLocalidadeDiacono, setShowOutraLocalidadeDiacono] = useState(false);
+  const [novoAnciao, setNovoAnciao] = useState({ nome: '', localidade: '' });
+  const [novoDiacono, setNovoDiacono] = useState({ nome: '', localidade: '' });
+  const [anciaoOutraLocalidade, setAnciaosOutraLocalidade] = useState<Array<{ nome: string; localidade: string }>>([]);
+  const [diaconoOutraLocalidade, setDiaconosOutraLocalidade] = useState<Array<{ nome: string; localidade: string }>>([]);
   const [form, setForm] = useState({
     titulo: 'Santa Ceia',
     data: '',
@@ -57,10 +65,43 @@ export default function SantaCeia() {
     diaconoAuxiliar1: '',
     diaconoAuxiliar2: '',
     responsavelContagem: '',
+  })
+
+  // Estados de configuração do Preview
+  const [configOpen, setConfigOpen] = useState(false);
+  const [previewConfig, setPreviewConfig] = useState({
+    cellHeight: 'grande' as 'pequeno' | 'normal' | 'grande',
+    fontSize: 'grande' as 'pequeno' | 'normal' | 'grande',
+    bold: true,
+    sortBy: 'data' as 'data' | 'congregacao' | 'anciao',
   });
 
   // Filtrar apenas eventos de Santa Ceia
   const santaCeias = eventos.filter(e => e.subtipoReuniao === 'Santa-Ceia' || (e.tipo === 'Reunião' && e.subtipoReuniao === 'Santa-Ceia'));
+
+  // Migração automática de datas de 2025 para 2026
+  useEffect(() => {
+    const migrarDatas = async () => {
+      for (const evento of santaCeias) {
+        const ano = new Date(evento.data).getFullYear();
+        if (ano === 2025) {
+          const data2025 = new Date(evento.data);
+          const novaData = new Date(data2025);
+          novaData.setFullYear(2026);
+          const dataFormatada = novaData.toISOString().split('T')[0];
+          try {
+            await atualizar(evento.id, { data: dataFormatada });
+          } catch (e) {
+            console.error('Erro ao migrar data:', e);
+          }
+        }
+      }
+    };
+    
+    if (santaCeias.length > 0) {
+      migrarDatas();
+    }
+  }, [santaCeias, atualizar]);
 
   const getCongregacaoNome = (id: string) => {
     const cong = congregacoes.find(c => c.id === id);
@@ -78,11 +119,25 @@ export default function SantaCeia() {
     return membros.filter(m => m.ministerio === 'Diácono');
   };
 
+  const getNomeComLocalidade = (membro: typeof membros[0]) => {
+    const cong = congregacoes.find(c => c.id === membro.congregacaoId);
+    if (!cong) return membro.nome;
+    return `${membro.nome} (${cong.nome})`;
+  };
+
   const handleSubmit = () => {
     if (!form.data || !form.congregacaoId) {
       alert('Preencha data e congregação');
       return;
     }
+
+    // Combinar anciões: selecionados e de outra localidade
+    const anciaosSelecionados = [form.anciaoAtende1, form.anciaoAtende2].filter(Boolean);
+    const anciaosFormatados = anciaosSelecionados.concat(anciaoOutraLocalidade.map(a => `${a.nome} (${a.localidade})`));
+    
+    // Combinar diáconos: selecionados e de outra localidade
+    const diaconosSelecionados = [form.diaconoResponsavel, form.diaconoAuxiliar1, form.diaconoAuxiliar2].filter(Boolean);
+    const diaconosFormatados = diaconosSelecionados.concat(diaconoOutraLocalidade.map(d => `${d.nome} (${d.localidade})`));
 
     const novoEvento = {
       titulo: form.titulo,
@@ -91,9 +146,9 @@ export default function SantaCeia() {
       tipo: 'Reunião' as const,
       subtipoReuniao: 'Santa-Ceia',
       congregacaoId: form.congregacaoId,
-      anciaoAtende: [form.anciaoAtende1, form.anciaoAtende2].filter(Boolean).sort().join(', '),
+      anciaoAtende: anciaosFormatados.sort().join(', ') || '',
       diaconoResponsavel: form.diaconoResponsavel,
-      diaconoAuxiliar: [form.diaconoAuxiliar1, form.diaconoAuxiliar2].filter(Boolean).sort().join(', '),
+      diaconoAuxiliar: diaconosFormatados.filter((_, i) => i > 0).sort().join(', ') || '',
       responsavelContagem: form.responsavelContagem,
     };
 
@@ -110,6 +165,12 @@ export default function SantaCeia() {
       diaconoAuxiliar2: '',
       responsavelContagem: '',
     });
+    setAnciaosOutraLocalidade([]);
+    setDiaconosOutraLocalidade([]);
+    setShowOutraLocalidadeAnciao(false);
+    setShowOutraLocalidadeDiacono(false);
+    setNovoAnciao({ nome: '', localidade: '' });
+    setNovoDiacono({ nome: '', localidade: '' });
     setOpen(false);
   };
 
@@ -138,14 +199,29 @@ export default function SantaCeia() {
 
     await remover(editingForm.id);
     const { id, ...eventoSemId } = editingForm;
+    
+    // Combinar anciões: selecionados e de outra localidade
+    const anciaosSelecionados = [editingForm.anciaoAtende1, editingForm.anciaoAtende2].filter(Boolean);
+    const anciaosFormatados = anciaosSelecionados.concat(anciaoOutraLocalidade.map(a => `${a.nome} (${a.localidade})`));
+    
+    // Combinar diáconos: selecionados e de outra localidade
+    const diaconosSelecionados = [editingForm.diaconoResponsavel, editingForm.diaconoAuxiliar1, editingForm.diaconoAuxiliar2].filter(Boolean);
+    const diaconosFormatados = diaconosSelecionados.concat(diaconoOutraLocalidade.map(d => `${d.nome} (${d.localidade})`));
+
     const updatedEvento = {
       ...eventoSemId,
-      anciaoAtende: [editingForm.anciaoAtende1, editingForm.anciaoAtende2].filter(Boolean).sort().join(', '),
-      diaconoAuxiliar: [editingForm.diaconoAuxiliar1, editingForm.diaconoAuxiliar2].filter(Boolean).sort().join(', '),
+      anciaoAtende: anciaosFormatados.sort().join(', ') || '',
+      diaconoAuxiliar: diaconosFormatados.filter((_, i) => i > 0).sort().join(', ') || '',
     };
     adicionar(updatedEvento);
     setEditOpen(false);
     setEditingForm(null);
+    setAnciaosOutraLocalidade([]);
+    setDiaconosOutraLocalidade([]);
+    setShowOutraLocalidadeAnciao(false);
+    setShowOutraLocalidadeDiacono(false);
+    setNovoAnciao({ nome: '', localidade: '' });
+    setNovoDiacono({ nome: '', localidade: '' });
   };
 
   const handleDeleteConfirm = async () => {
@@ -173,17 +249,22 @@ export default function SantaCeia() {
     }
   };
 
-  const gerarPDF = async () => {
+  const abrirPreviewPDF = () => {
+    setShowPdfPreview(true);
+  };
+
+  const gerarPDFFinal = async () => {
     if (!pdfPreviewRef.current) return;
     try {
-      setShowPdfPreview(true);
-      // Aguardar renderização
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Aguardar renderização completa
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const canvas = await html2canvas(pdfPreviewRef.current, { 
-        scale: 1.5,
+        scale: 2,
         backgroundColor: '#ffffff',
-        useCORS: true
+        useCORS: true,
+        logging: false,
+        allowTaint: true
       });
       
       const pdf = new jsPDF('l', 'mm', 'a4');
@@ -191,44 +272,118 @@ export default function SantaCeia() {
       const imgWidth = 297 - 16;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 8, 8, imgWidth, imgHeight);
-      pdf.save('santa-ceia.pdf');
+      let heightLeft = imgHeight;
+      let position = 0;
       
+      // Adicionar múltiplas páginas se necessário
+      pdf.addImage(imgData, 'PNG', 8, position + 8, imgWidth, imgHeight);
+      heightLeft -= 200;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 8, position + 8, imgWidth, imgHeight);
+        heightLeft -= 200;
+      }
+      
+      pdf.save('santa-ceia-marcacao.pdf');
       setShowPdfPreview(false);
     } catch (e) {
       console.error('Erro ao gerar PDF:', e);
-      setShowPdfPreview(false);
+      alert('Erro ao gerar PDF. Tente novamente.');
     }
   };
 
-  const gerarXLS = () => {
-    const data = santaCeias.map(sc => ({
+  const gerarExcel = () => {
+    if (santaCeias.length === 0) {
+      alert('Nenhuma marcação para exportar');
+      return;
+    }
+
+    // Filtrar dados de 2026 e ordenar por data
+    const dadosFiltrados = santaCeias
+      .filter(sc => new Date(sc.data).getFullYear() === 2026)
+      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+
+    // Preparar dados
+    const data = dadosFiltrados.map(sc => ({
       'Data': new Date(sc.data + 'T12:00:00').toLocaleDateString('pt-BR'),
+      'Hora': sc.horario || '03:00',
       'Congregação': getCongregacaoNome(sc.congregacaoId || ''),
-      'Anciães': sc.anciaoAtende || '—',
-      'Diác. Responsável': sc.diaconoResponsavel || '—',
-      'Diác. Auxiliares': sc.diaconoAuxiliar || '—',
-      'Contagem': sc.responsavelContagem || '—',
+      'Ancião': reduzirNomes(sc.anciaoAtende)?.split(', ').join(' / ') || '—',
+      'Diác. Responsável': reduzirNome(sc.diaconoResponsavel) || '—',
+      'Diác. Auxiliares': reduzirNomes(sc.diaconoAuxiliar)?.split(', ').join(' / ') || '—',
+      'Contagem': reduzirNome(sc.responsavelContagem) || '—',
     }));
 
-    const ws_data = [
-      Object.keys(data[0] || {}),
-      ...data.map(row => Object.values(row)),
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    // Ajustar largura das colunas
+    ws['!cols'] = [
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 18 },
+      { wch: 25 },
+      { wch: 18 },
+      { wch: 25 },
+      { wch: 18 },
     ];
 
-    const csv = ws_data.map(row => 
-      Array.isArray(row) ? row.map(cell => `"${cell}"`).join(',') : row
-    ).join('\n');
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Santas Ceias');
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'santa-ceia.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Gerar arquivo
+    XLSX.writeFile(wb, 'santa-ceia-marcacao.xlsx');
+  };
+
+  // Funções auxiliares para configuração do preview
+  const getPaddingClass = () => {
+    switch (previewConfig.cellHeight) {
+      case 'pequeno': return 'py-1 px-2';
+      case 'grande': return 'py-4 px-3';
+      default: return 'py-2 px-2.5';
+    }
+  };
+
+  const getFontSizeClass = () => {
+    switch (previewConfig.fontSize) {
+      case 'pequeno': return 'text-xs';
+      case 'grande': return 'text-base';
+      default: return 'text-sm';
+    }
+  };
+
+  const getFontWeightClass = () => {
+    return previewConfig.bold ? 'font-bold' : 'font-medium';
+  };
+
+  const reduzirNome = (nome: string) => {
+    if (!nome) return '';
+    const partes = nome.trim().split(/\s+/);
+    if (partes.length <= 1) return nome;
+    return `${partes[0]} ${partes[partes.length - 1]}`;
+  };
+
+  const reduzirNomes = (nomes: string) => {
+    if (!nomes) return nomes;
+    return nomes.split(', ').map(n => reduzirNome(n.trim())).join(', ');
+  };
+
+  const getSortedSantaCeias = () => {
+    const sorted = [...santaCeias].filter(s => {
+      const year = new Date(s.data).getFullYear();
+      return year === 2026;
+    });
+    switch (previewConfig.sortBy) {
+      case 'congregacao':
+        return sorted.sort((a, b) => getCongregacaoNome(a.congregacaoId || '').localeCompare(getCongregacaoNome(b.congregacaoId || ''), 'pt-BR'));
+      case 'anciao':
+        return sorted.sort((a, b) => (a.anciaoAtende || '').localeCompare(b.anciaoAtende || '', 'pt-BR'));
+      default:
+        return sorted.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+    }
   };
 
   return (
@@ -240,13 +395,23 @@ export default function SantaCeia() {
           <p className="text-sm text-muted-foreground mt-1">Marcação e gerenciamento de Santa Ceia</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={gerarPDF} disabled={santaCeias.length === 0}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={abrirPreviewPDF} disabled={santaCeias.length === 0}>
             <FileText className="h-4 w-4" /> PDF
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={gerarXLS} disabled={santaCeias.length === 0}>
-            <Download className="h-4 w-4" /> CSV
+          <Button variant="outline" size="sm" className="gap-2" onClick={gerarExcel} disabled={santaCeias.length === 0}>
+            <Download className="h-4 w-4" /> XLS
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(newOpen) => {
+            setOpen(newOpen);
+            if (!newOpen) {
+              setAnciaosOutraLocalidade([]);
+              setDiaconosOutraLocalidade([]);
+              setShowOutraLocalidadeAnciao(false);
+              setShowOutraLocalidadeDiacono(false);
+              setNovoAnciao({ nome: '', localidade: '' });
+              setNovoDiacono({ nome: '', localidade: '' });
+            }
+          }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" /> Nova Santa Ceia
@@ -302,7 +467,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosAnciaos().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(a => (
-                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.nome}>{getNomeComLocalidade(a)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -316,7 +481,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosAnciaos().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(a => (
-                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.nome}>{getNomeComLocalidade(a)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -330,7 +495,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -344,7 +509,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -358,11 +523,147 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={showOutraLocalidadeAnciao}
+                    onCheckedChange={(checked) => setShowOutraLocalidadeAnciao(checked === true)}
+                  />
+                  <span className="text-sm font-medium">Ancião de outra localidade</span>
+                </label>
+              </div>
+              
+              {showOutraLocalidadeAnciao && (
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/30 rounded-lg">
+                  <div>
+                    <Label className="text-xs sm:text-sm">Nome do Ancião</Label>
+                    <Input
+                      placeholder="Digite o nome"
+                      value={novoAnciao.nome}
+                      onChange={(e) => setNovoAnciao({ ...novoAnciao, nome: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs sm:text-sm">Localidade</Label>
+                    <Input
+                      placeholder="Digite a localidade"
+                      value={novoAnciao.localidade}
+                      onChange={(e) => setNovoAnciao({ ...novoAnciao, localidade: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (novoAnciao.nome && novoAnciao.localidade) {
+                          setAnciaosOutraLocalidade([...anciaoOutraLocalidade, novoAnciao]);
+                          setNovoAnciao({ nome: '', localidade: '' });
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm"
+                    >
+                      + Adicionar Ancião
+                    </Button>
+                  </div>
+                  {anciaoOutraLocalidade.length > 0 && (
+                    <div className="col-span-2 space-y-2">
+                      {anciaoOutraLocalidade.map((a, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
+                          <div>
+                            <span className="font-medium">{a.nome}</span>
+                            <span className="text-xs text-muted-foreground ml-2">({a.localidade})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAnciaosOutraLocalidade(anciaoOutraLocalidade.filter((_, i) => i !== idx))}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={showOutraLocalidadeDiacono}
+                    onCheckedChange={(checked) => setShowOutraLocalidadeDiacono(checked === true)}
+                  />
+                  <span className="text-sm font-medium">Diácono de outra localidade</span>
+                </label>
+              </div>
+
+              {showOutraLocalidadeDiacono && (
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/30 rounded-lg">
+                  <div>
+                    <Label className="text-xs sm:text-sm">Nome do Diácono</Label>
+                    <Input
+                      placeholder="Digite o nome"
+                      value={novoDiacono.nome}
+                      onChange={(e) => setNovoDiacono({ ...novoDiacono, nome: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs sm:text-sm">Localidade</Label>
+                    <Input
+                      placeholder="Digite a localidade"
+                      value={novoDiacono.localidade}
+                      onChange={(e) => setNovoDiacono({ ...novoDiacono, localidade: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (novoDiacono.nome && novoDiacono.localidade) {
+                          setDiaconosOutraLocalidade([...diaconoOutraLocalidade, novoDiacono]);
+                          setNovoDiacono({ nome: '', localidade: '' });
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm"
+                    >
+                      + Adicionar Diácono
+                    </Button>
+                  </div>
+                  {diaconoOutraLocalidade.length > 0 && (
+                    <div className="col-span-2 space-y-2">
+                      {diaconoOutraLocalidade.map((d, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
+                          <div>
+                            <span className="font-medium">{d.nome}</span>
+                            <span className="text-xs text-muted-foreground ml-2">({d.localidade})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDiaconosOutraLocalidade(diaconoOutraLocalidade.filter((_, i) => i !== idx))}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <Label className="text-sm font-semibold">Responsável pela Contagem</Label>
@@ -409,9 +710,11 @@ export default function SantaCeia() {
                 {santaCeias.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map((sc) => {
                   const dataObj = new Date(sc.data + 'T12:00:00');
                   const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                  const diaSemana = diasSemana[dataObj.getDay()];
                   return (
                     <tr key={sc.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3 text-foreground">{dataBR}</td>
+                      <td className="px-4 py-3 text-foreground">{dataBR} {diaSemana}</td>
                       <td className="px-4 py-3 text-foreground">{getCongregacaoNome(sc.congregacaoId || '')}</td>
                       <td className="px-4 py-3 text-foreground">{sc.anciaoAtende || '—'}</td>
                       <td className="px-4 py-3 text-foreground">{sc.diaconoResponsavel || '—'}</td>
@@ -494,7 +797,17 @@ export default function SantaCeia() {
       </Dialog>
 
       {/* Dialog de Edição */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(newOpen) => {
+        setEditOpen(newOpen);
+        if (!newOpen) {
+          setAnciaosOutraLocalidade([]);
+          setDiaconosOutraLocalidade([]);
+          setShowOutraLocalidadeAnciao(false);
+          setShowOutraLocalidadeDiacono(false);
+          setNovoAnciao({ nome: '', localidade: '' });
+          setNovoDiacono({ nome: '', localidade: '' });
+        }
+      }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Santa Ceia</DialogTitle>
@@ -546,7 +859,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosAnciaos().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(a => (
-                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.nome}>{getNomeComLocalidade(a)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -560,7 +873,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosAnciaos().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(a => (
-                      <SelectItem key={a.id} value={a.nome}>{a.nome}</SelectItem>
+                      <SelectItem key={a.id} value={a.nome}>{getNomeComLocalidade(a)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -574,7 +887,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -588,7 +901,7 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -602,11 +915,147 @@ export default function SantaCeia() {
                   </SelectTrigger>
                   <SelectContent>
                     {getMembrosD().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map(d => (
-                      <SelectItem key={d.id} value={d.nome}>{d.nome}</SelectItem>
+                      <SelectItem key={d.id} value={d.nome}>{getNomeComLocalidade(d)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={showOutraLocalidadeAnciao}
+                    onCheckedChange={(checked) => setShowOutraLocalidadeAnciao(checked === true)}
+                  />
+                  <span className="text-sm font-medium">Ancião de outra localidade</span>
+                </label>
+              </div>
+              
+              {showOutraLocalidadeAnciao && (
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/30 rounded-lg">
+                  <div>
+                    <Label className="text-xs sm:text-sm">Nome do Ancião</Label>
+                    <Input
+                      placeholder="Digite o nome"
+                      value={novoAnciao.nome}
+                      onChange={(e) => setNovoAnciao({ ...novoAnciao, nome: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs sm:text-sm">Localidade</Label>
+                    <Input
+                      placeholder="Digite a localidade"
+                      value={novoAnciao.localidade}
+                      onChange={(e) => setNovoAnciao({ ...novoAnciao, localidade: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (novoAnciao.nome && novoAnciao.localidade) {
+                          setAnciaosOutraLocalidade([...anciaoOutraLocalidade, novoAnciao]);
+                          setNovoAnciao({ nome: '', localidade: '' });
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm"
+                    >
+                      + Adicionar Ancião
+                    </Button>
+                  </div>
+                  {anciaoOutraLocalidade.length > 0 && (
+                    <div className="col-span-2 space-y-2">
+                      {anciaoOutraLocalidade.map((a, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
+                          <div>
+                            <span className="font-medium">{a.nome}</span>
+                            <span className="text-xs text-muted-foreground ml-2">({a.localidade})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAnciaosOutraLocalidade(anciaoOutraLocalidade.filter((_, i) => i !== idx))}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={showOutraLocalidadeDiacono}
+                    onCheckedChange={(checked) => setShowOutraLocalidadeDiacono(checked === true)}
+                  />
+                  <span className="text-sm font-medium">Diácono de outra localidade</span>
+                </label>
+              </div>
+
+              {showOutraLocalidadeDiacono && (
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-muted/30 rounded-lg">
+                  <div>
+                    <Label className="text-xs sm:text-sm">Nome do Diácono</Label>
+                    <Input
+                      placeholder="Digite o nome"
+                      value={novoDiacono.nome}
+                      onChange={(e) => setNovoDiacono({ ...novoDiacono, nome: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs sm:text-sm">Localidade</Label>
+                    <Input
+                      placeholder="Digite a localidade"
+                      value={novoDiacono.localidade}
+                      onChange={(e) => setNovoDiacono({ ...novoDiacono, localidade: e.target.value })}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (novoDiacono.nome && novoDiacono.localidade) {
+                          setDiaconosOutraLocalidade([...diaconoOutraLocalidade, novoDiacono]);
+                          setNovoDiacono({ nome: '', localidade: '' });
+                        }
+                      }}
+                      className="w-full text-xs sm:text-sm"
+                    >
+                      + Adicionar Diácono
+                    </Button>
+                  </div>
+                  {diaconoOutraLocalidade.length > 0 && (
+                    <div className="col-span-2 space-y-2">
+                      {diaconoOutraLocalidade.map((d, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-background rounded border border-border text-sm">
+                          <div>
+                            <span className="font-medium">{d.nome}</span>
+                            <span className="text-xs text-muted-foreground ml-2">({d.localidade})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDiaconosOutraLocalidade(diaconoOutraLocalidade.filter((_, i) => i !== idx))}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <Label className="text-sm font-semibold">Responsável pela Contagem</Label>
@@ -648,50 +1097,54 @@ export default function SantaCeia() {
       {/* Dialog de Preview PDF */}
       <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-          <DialogHeader>
+          <DialogHeader className="flex items-center justify-between">
             <DialogTitle>Preview - Santa Ceia</DialogTitle>
+            <Button variant="ghost" size="sm" onClick={() => setConfigOpen(true)} className="h-8 w-8 p-0">
+              <Settings className="h-4 w-4" />
+            </Button>
           </DialogHeader>
-          <div ref={pdfPreviewRef} className="bg-white p-2">
-            <div className="mb-1">
-              <h1 className="text-lg font-bold text-center mb-0">SANTA CEIA - MARCAÇÃO</h1>
-              <p className="text-center text-gray-600 text-xs leading-none">{new Date().toLocaleDateString('pt-BR')}</p>
+          <div ref={pdfPreviewRef} className="bg-white p-6">
+            <div className="mb-8 pb-6 border-b-4 border-gray-900">
+              <h1 className="text-2xl font-bold text-center mb-0">CONGREGAÇÃO CRISTÃ NO BRASIL</h1>
+              <h1 className="text-xl font-bold text-center mb-3">SANTAS-CEIAS 2026 - Administração ITUIUTABA</h1>
+              <p className="text-center text-gray-700 text-sm font-bold">{new Date().toLocaleDateString('pt-BR')}</p>
             </div>
             
             <table className="w-full border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Data</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Hora</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Congregação</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Anciões</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Diác. Resp.</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Diác. Aux.</th>
-                  <th className="border border-gray-300 px-1 py-0.5 text-left font-bold">Contagem</th>
+                <tr className="bg-gray-300 border-3 border-gray-900">
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Data</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Hora</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Congregação</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Ancião</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Diác. Resp.</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Diác. Aux.</th>
+                  <th className={`border-2 border-gray-900 text-left font-bold text-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>Contagem</th>
                 </tr>
               </thead>
               <tbody>
-                {santaCeias.length === 0 ? (
+                {getSortedSantaCeias().length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="border border-gray-300 px-1 py-0.5 text-center text-gray-500 text-xs">
+                    <td colSpan={7} className={`border-2 border-gray-900 text-center text-gray-600 font-semibold ${getPaddingClass()} ${getFontSizeClass()}`}>
                       Nenhuma marcação registrada
                     </td>
                   </tr>
                 ) : (
-                  santaCeias.map((santa, idx) => (
+                  getSortedSantaCeias().map((santa, idx) => (
                     <tr key={santa.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="border border-gray-300 px-1 py-0 text-xs whitespace-nowrap">
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>
                         {new Date(santa.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                       </td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">{santa.horario || '03:00'}</td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">{getCongregacaoNome(santa.congregacaoId || '')}</td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">
-                        {santa.anciaoAtende?.split(', ').join(' / ') || '—'}
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{santa.horario || '03:00'}</td>
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{getCongregacaoNome(santa.congregacaoId || '')}</td>
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>
+                        {reduzirNomes(santa.anciaoAtende)?.split(', ').join('\n') || '—'}
                       </td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">{santa.diaconoResponsavel || '—'}</td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">
-                        {santa.diaconoAuxiliar?.split(', ').join(' / ') || '—'}
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{reduzirNome(santa.diaconoResponsavel) || '—'}</td>
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()}`}>
+                        {reduzirNomes(santa.diaconoAuxiliar)?.split(', ').join('\n') || '—'}
                       </td>
-                      <td className="border border-gray-300 px-1 py-0 text-xs">{santa.responsavelContagem || '—'}</td>
+                      <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{reduzirNome(santa.responsavelContagem) || '—'}</td>
                     </tr>
                   ))
                 )}
@@ -701,9 +1154,72 @@ export default function SantaCeia() {
           
           <div className="flex gap-2 justify-end pt-4">
             <Button variant="outline" onClick={() => setShowPdfPreview(false)}>Cancelar</Button>
-            <Button onClick={async () => {
-              await gerarPDF();
-            }}>Gerar PDF</Button>
+            <Button onClick={gerarPDFFinal}>Gerar PDF</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Configuração do Preview */}
+      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurações do Preview</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-semibold">Ordem dos Eventos</Label>
+              <Select value={previewConfig.sortBy} onValueChange={(value) => setPreviewConfig({...previewConfig, sortBy: value as 'data' | 'congregacao' | 'anciao'})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="data">Por Data</SelectItem>
+                  <SelectItem value="congregacao">Por Congregação</SelectItem>
+                  <SelectItem value="anciao">Por Ancião</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold">Altura das Células</Label>
+              <Select value={previewConfig.cellHeight} onValueChange={(value) => setPreviewConfig({...previewConfig, cellHeight: value as 'pequeno' | 'normal' | 'grande'})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pequeno">Pequena</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="grande">Grande</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold">Tamanho da Fonte</Label>
+              <Select value={previewConfig.fontSize} onValueChange={(value) => setPreviewConfig({...previewConfig, fontSize: value as 'pequeno' | 'normal' | 'grande'})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pequeno">Pequeno</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="grande">Grande</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="bold-check"
+                checked={previewConfig.bold}
+                onCheckedChange={(checked) => setPreviewConfig({...previewConfig, bold: checked === true})}
+              />
+              <Label htmlFor="bold-check" className="text-sm font-medium cursor-pointer">Negrito</Label>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button variant="outline" onClick={() => setConfigOpen(false)}>Fechar</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

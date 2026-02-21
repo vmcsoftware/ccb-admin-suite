@@ -707,6 +707,37 @@ export default function Agenda() {
                   </div>
                 </>
               )}
+              {subtipoReunioes === 'AGO' && (
+                <>
+                  <div className="border-t border-border pt-4">
+                    <h3 className="font-medium text-sm mb-3">Dados da AGO</h3>
+                  </div>
+                  <div>
+                    <Label>Ancião que Atenderá</Label>
+                    <div className="space-y-2">
+                      {!anciaoOutraLocalidade ? (
+                        <Select value={form.anciaoAtende} onValueChange={(v) => setForm({ ...form, anciaoAtende: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione um ancião" /></SelectTrigger>
+                          <SelectContent>
+                            {[...membros]
+                              .filter((m) => m.ministerio === 'Ancião')
+                              .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input value={form.anciaoAtende} onChange={(e) => setForm({ ...form, anciaoAtende: e.target.value })} placeholder="Digite o nome do ancião" />
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox checked={anciaoOutraLocalidade} onCheckedChange={(checked) => setAnciaoOutraLocalidade(checked === true)} />
+                        <span>De outra localidade</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
               <div>
                 <Label>Descrição</Label>
                 <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Opcional" />

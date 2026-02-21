@@ -154,15 +154,15 @@ export function useMembros() {
 }
 
 export function useEventos() {
-  const { items: eventos, loading, adicionar, remover } =
+  const { items: eventos, loading, adicionar, remover, atualizar } =
     useFirestoreCollection<Evento>('eventos');
-  return { eventos, loading, adicionar, remover };
+  return { eventos, loading, adicionar, remover, atualizar };
 }
 
 export function useReforcos() {
-  const { items: reforcos, loading, adicionar, remover } =
+  const { items: reforcos, loading, adicionar, remover, atualizar } =
     useFirestoreCollection<Reforco>('reforcos');
-  return { reforcos, loading, adicionar, remover };
+  return { reforcos, loading, adicionar, remover, atualizar };
 }
 
 export function useEnsaios() {
