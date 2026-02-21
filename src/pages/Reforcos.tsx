@@ -77,8 +77,9 @@ export default function Reforcos() {
 
     const isCentral = cong?.nome.toLowerCase().includes('central') && cong?.cidade === 'Ituiutaba';
 
-    // Regra especial: Permitir apenas 2 agendamentos no mês para Central de Ituiutaba
-    // Um deles DEVE ser impreterivelmente na quinta-feira
+    // Regra especial para Central de Ituiutaba:
+    // - Máximo 2 CULTOS por mês (um DEVE ser na quinta-feira)
+    // - Máximo 1 RJM por mês
     if (isCentral) {
       const reforçosNoMes = reforcos.filter((r) => {
         const reforcoDate = new Date(r.data + 'T12:00:00');
@@ -90,21 +91,36 @@ export default function Reforcos() {
         );
       });
 
-      // Verificar se já existe um reforço na quinta-feira
-      const temQuintaAgendata = reforçosNoMes.some((r) => {
+      // Contar por tipo
+      const cultosMes = reforçosNoMes.filter(r => r.tipo === 'Culto');
+      const rjmMes = reforçosNoMes.filter(r => r.tipo === 'RJM');
+
+      // Verificar se já existe um culto na quinta-feira
+      const temCultoQuinta = cultosMes.some((r) => {
         const reforcoDate = new Date(r.data + 'T12:00:00');
         return reforcoDate.getDay() === 4;
       });
 
-      if (reforçosNoMes.length >= 2) {
-        const congNome = cong?.nome || 'Congregação';
-        return `A ${congNome} já possui 2 agendamentos no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 2 agendamentos por mês são permitidos.`;
+      // Validar limite de CULTOS
+      if (tipo === 'Culto') {
+        if (cultosMes.length >= 2) {
+          const congNome = cong?.nome || 'Congregação';
+          return `A ${congNome} já possui 2 CULTOS agendados no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 2 cultos por mês são permitidos.`;
+        }
+
+        // Se já tem 1 culto e este não é quinta-feira, e não existe culto de quinta marcado
+        if (cultosMes.length === 1 && !isFifthDay && !temCultoQuinta) {
+          const congNome = cong?.nome || 'Congregação';
+          return `Já existe um CULTO agendado em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} para ${congNome}. O segundo culto DEVE ser impreterivelmente na quinta-feira.`;
+        }
       }
 
-      // Se já tem 1 reforço e este não é quinta-feira, e não existe quinta-feira marcada
-      if (reforçosNoMes.length === 1 && !isFifthDay && !temQuintaAgendata) {
-        const congNome = cong?.nome || 'Congregação';
-        return `Já existe um reforço agendado em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} para ${congNome}. O segundo reforço DEVE ser impreterivelmente na quinta-feira.`;
+      // Validar limite de RJM
+      if (tipo === 'RJM') {
+        if (rjmMes.length >= 1) {
+          const congNome = cong?.nome || 'Congregação';
+          return `A ${congNome} já possui 1 RJM agendada no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 1 RJM por mês é permitida para esta congregação.`;
+        }
       }
 
       return null;
