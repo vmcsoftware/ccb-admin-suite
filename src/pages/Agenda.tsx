@@ -51,26 +51,30 @@ const tiposReuniaoConfig: Record<string, {
   textColor: string;
   borderColor: string;
   description?: string;
+  displayName?: string;
 }> = {
   'Reuniões': {
     icon: Users,
     gradient: 'from-blue-500/20 to-blue-600/20',
     textColor: 'text-blue-700 dark:text-blue-400',
     borderColor: 'border-blue-300 dark:border-blue-600',
-    description: 'Reunião Geral'
+    description: 'Reunião Geral',
+    displayName: 'Reuniões'
   },
   'Santa-Ceia': {
     icon: Droplets,
     gradient: 'from-purple-500/20 to-purple-600/20',
     textColor: 'text-purple-700 dark:text-purple-400',
     borderColor: 'border-purple-300 dark:border-purple-600',
+    displayName: 'Santa-Ceia'
   },
   'AGO': {
     icon: Users,
     gradient: 'from-green-600/20 to-emerald-500/20',
     textColor: 'text-green-700 dark:text-green-400',
     borderColor: 'border-green-300 dark:border-green-600',
-    description: 'Assembléia Geral Ordinária'
+    description: 'Assembleia Geral Ordinária',
+    displayName: 'Assembleia Geral Ordinária'
   },
   'Batismo': {
     icon: Droplets,
@@ -142,6 +146,11 @@ const tipoCor: Record<Evento['tipo'], string> = {
   Reunião: 'bg-warning/20 text-warning-foreground border-warning/30',
   Jovens: 'bg-violet/10 text-violet border-violet/20',
   Outro: 'bg-muted text-muted-foreground border-border',
+};
+
+// Função para obter nome de exibição do tipo de reunião
+const getDisplayName = (tipo: string): string => {
+  return tiposReuniaoConfig[tipo]?.displayName || tipo;
 };
 
 export default function Agenda() {
@@ -342,7 +351,7 @@ export default function Agenda() {
                   <Select value={subtipoReunioes} onValueChange={setSubtipoReunioes}>
                     <SelectTrigger><SelectValue placeholder="Selecione o tipo de reunião" /></SelectTrigger>
                     <SelectContent>
-                      {tiposReunioes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {tiposReunioes.map((t) => <SelectItem key={t} value={t}>{getDisplayName(t)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -775,7 +784,7 @@ export default function Agenda() {
                   
                   {/* Título */}
                   <p className={`text-xs sm:text-sm font-semibold ${config.textColor} text-center leading-tight`}>
-                    {tipo}
+                    {getDisplayName(tipo)}
                   </p>
                   
                   {/* Badge com contador */}
@@ -795,7 +804,7 @@ export default function Agenda() {
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display">{selectedEvent?.subtipoReuniao || selectedEvent?.titulo}</DialogTitle>
+            <DialogTitle className="font-display">{selectedEvent?.subtipoReuniao ? getDisplayName(selectedEvent.subtipoReuniao) : selectedEvent?.titulo}</DialogTitle>
           </DialogHeader>
           {selectedEvent && (
             <div className="space-y-4">
@@ -875,7 +884,7 @@ export default function Agenda() {
                   </div>
                   <div className="flex-1">
                     {ev.subtipoReuniao && (
-                      <p className="font-semibold text-foreground text-lg">{ev.subtipoReuniao}</p>
+                      <p className="font-semibold text-foreground text-lg">{getDisplayName(ev.subtipoReuniao)}</p>
                     )}
                     {ev.titulo && (
                       <p className="text-sm text-muted-foreground">{ev.titulo}</p>
