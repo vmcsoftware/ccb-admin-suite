@@ -399,6 +399,25 @@ export default function Listas() {
     return `${partes[0]} ${partes[partes.length - 1]}`;
   };
 
+  const getDisplayName = (tipo: string): string => {
+    const displayNames: { [key: string]: string } = {
+      'AGO': 'Assembléia Geral Ordinária',
+      'Reuniões': 'Reuniões',
+      'Santa-Ceia': 'Santa-Ceia',
+      'Batismo': 'Batismo',
+      'Reunião para Mocidade': 'Reunião para Mocidade',
+      'Busca dos Dons': 'Busca dos Dons',
+      'RJM com Busca dos Dons': 'RJM com Busca dos Dons',
+      'Reunião Setorial': 'Reunião Setorial',
+      'Reunião Ministerial': 'Reunião Ministerial',
+      'Reunião Extra': 'Reunião Extra',
+      'Culto para Jovens': 'Culto para Jovens',
+      'Ensaio Regional': 'Ensaio Regional',
+      'Ordenação': 'Ordenação'
+    };
+    return displayNames[tipo] || tipo;
+  };
+
   const gerarPDF = async () => {
     if (!previewRef.current) return;
     
@@ -1096,7 +1115,7 @@ export default function Listas() {
                           return (
                             <div key={tipo} className="space-y-2">
                               <div className="flex items-center justify-between pb-2 border-b border-gray-900">
-                                <h5 className="font-bold text-sm text-gray-900 uppercase">{tipo}</h5>
+                                <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
@@ -1147,7 +1166,7 @@ export default function Listas() {
                           return (
                             <div key={tipo} className="space-y-2">
                               <div className="flex items-center justify-between pb-2 border-b border-gray-900">
-                                <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {tipo}</h5>
+                                <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
                               <table className="w-full border-collapse">
