@@ -609,7 +609,7 @@ export default function Listas() {
             <Button variant="outline" className="gap-2">
               <Download className="h-4 w-4" /> Exportar
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={salvarLista}>
               <RefreshCw className="h-4 w-4" /> Atualizar
             </Button>
           </div>
