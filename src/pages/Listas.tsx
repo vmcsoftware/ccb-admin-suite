@@ -52,7 +52,8 @@ export default function Listas() {
   const { membros } = useMembros();
   const { reforcos } = useReforcos();
   const { eventos } = useEventos();
-  const previewRef = useRef<HTMLDivElement>(null);
+  const previewRefGerenciar = useRef<HTMLDivElement>(null);
+  const previewRefEditor = useRef<HTMLDivElement>(null);
 
   const [tela, setTela] = useState<'inicial' | 'formulario' | 'editor' | 'gerenciar'>('inicial');
   const [listas, setListas] = useState<Lista[]>([]);
@@ -419,18 +420,22 @@ export default function Listas() {
   };
 
   const gerarPDF = async () => {
-    if (!previewRef.current) return;
+    // Determinar qual ref usar baseado na tela ativa
+    const activeRef = tela === 'gerenciar' ? previewRefGerenciar : previewRefEditor;
+    if (!activeRef.current) return;
     
     try {
-      const element = previewRef.current;
+      const element = activeRef.current;
       const canvas = await html2canvas(element, {
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        windowWidth: 1400,
+        windowWidth: 1200,
+        logging: false,
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      // Usar JPEG para melhor compressão e qualidade
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -439,21 +444,54 @@ export default function Listas() {
       
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margins = 8;
+      const margins = 6; // Reduzir margens para otimizar espaço
       const imgWidth = pageWidth - (margins * 2);
+      let yPosition = margins;
+      
+      // Calcula altura proporcional da imagem
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const maxHeightPerPage = pageHeight - (margins * 2);
       
-      let heightLeft = imgHeight;
-      let position = margins;
+      // Primeira página
+      let currentY = 0;
+      let remainingHeight = imgHeight;
       
-      pdf.addImage(imgData, 'PNG', margins, position, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - (margins * 2));
-      
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margins, margins, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - (margins * 2));
+      while (remainingHeight > 0) {
+        const heightToCopy = Math.min(remainingHeight, maxHeightPerPage);
+        
+        // Criar canvas temporário para cada seção
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = (heightToCopy / imgHeight) * canvas.height;
+        
+        const ctx = tempCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0,
+            (currentY / imgHeight) * canvas.height,
+            canvas.width,
+            (heightToCopy / imgHeight) * canvas.height,
+            0,
+            0,
+            canvas.width,
+            (heightToCopy / imgHeight) * canvas.height
+          );
+        }
+        
+        const pageImgData = tempCanvas.toDataURL('image/jpeg', 0.92);
+        
+        if (remainingHeight === imgHeight) {
+          // Primeira página
+          pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+        } else {
+          // Páginas subsequentes
+          pdf.addPage();
+          pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+        }
+        
+        currentY += heightToCopy;
+        remainingHeight -= heightToCopy;
       }
       
       pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -1095,7 +1133,7 @@ export default function Listas() {
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
                 <div className="border-2 border-border rounded-lg overflow-hidden">
-                  <div className="bg-white p-8 space-y-6" ref={previewRef}>
+                  <div className="bg-white p-8 space-y-6" ref={previewRefGerenciar}>
                     {/* CABEÇALHO */}
                     <div className="text-center space-y-1 pb-4 border-b-2 border-gray-800">
                       <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
@@ -1741,7 +1779,7 @@ export default function Listas() {
           </div>
 
           {/* Preview Section */}
-          <div ref={previewRef} className="glass-card rounded-xl p-8 space-y-6 bg-white">
+          <div ref={previewRefEditor} className="glass-card rounded-xl p-8 space-y-6 bg-white">
           {/* Cabeçalho do Documento */}
           <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
             <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
