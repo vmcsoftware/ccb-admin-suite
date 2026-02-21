@@ -758,7 +758,12 @@ export default function Listas() {
                                 <td className="px-4 py-2">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td className="px-4 py-2">{e.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                                <td className="px-4 py-2">{tipoReuniao === 'Reunião Ministerial' ? (e.descricao || '—') : (e.anciaoAtende || '—')}</td>
+                                <td className="px-4 py-2">
+                                  {tipoReuniao === 'Reunião Ministerial' 
+                                    ? (e.descricao ? e.descricao : '—')
+                                    : (e.anciaoAtende ? e.anciaoAtende : '—')
+                                  }
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1115,7 +1120,14 @@ export default function Listas() {
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
-                                        {tipo !== 'Reuniões' && <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? (e.descricao || '-') : (reduzirNome(e.anciaoAtende) || '-')}</td>}
+                                        {tipo !== 'Reuniões' && (
+                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>
+                                            {tipo === 'Reunião Ministerial' 
+                                              ? (e.descricao ? e.descricao : '-')
+                                              : (reduzirNome(e.anciaoAtende) ? reduzirNome(e.anciaoAtende) : '-')
+                                            }
+                                          </td>
+                                        )}
                                       </tr>
                                     );
                                   })}
