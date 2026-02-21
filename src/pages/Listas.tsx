@@ -887,7 +887,11 @@ export default function Listas() {
                                 <td className="px-4 py-2">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                 <td className="px-4 py-2">{r.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
-                                <td className="px-4 py-2">{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                                <td className="px-4 py-2">{(() => {
+                                  const membrosLocais = r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '—') : [];
+                                  const membrosOutras = r.membrosOutrasLocalidades ? r.membrosOutrasLocalidades.map(m => `${m.nome} (${m.localidade})`) : [];
+                                  return [...membrosLocais, ...membrosOutras].join(', ') || '—';
+                                })()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1061,7 +1065,7 @@ export default function Listas() {
                     disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
                   >
-                    <FileText className="h-4 w-4" /> Imprimir
+                    <FileText className="h-4 w-4" /> Gerar PDF
                   </Button>
                 </div>
 
