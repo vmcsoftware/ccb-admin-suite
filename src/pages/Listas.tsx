@@ -397,6 +397,25 @@ export default function Listas() {
     if (!nome) return '';
     const partes = nome.trim().split(/\s+/);
     if (partes.length <= 1) return nome;
+    
+    // Preposições comuns em nomes
+    const preposicoes = ['de', 'da', 'do', 'dei', 'del', 'dos', 'das', 'di'];
+    
+    // Encontrar a primeira preposição
+    let indexPreposicao = -1;
+    for (let i = 1; i < partes.length; i++) {
+      if (preposicoes.includes(partes[i].toLowerCase())) {
+        indexPreposicao = i;
+        break;
+      }
+    }
+    
+    // Se há preposição e há palavra após ela
+    if (indexPreposicao !== -1 && indexPreposicao < partes.length - 1) {
+      return `${partes[0]} ${partes[indexPreposicao]} ${partes[indexPreposicao + 1]}`;
+    }
+    
+    // Caso contrário, retorna primeiro nome + último nome
     return `${partes[0]} ${partes[partes.length - 1]}`;
   };
 
@@ -446,7 +465,7 @@ export default function Listas() {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margins = 6; // Reduzir margens para otimizar espaço
       const imgWidth = pageWidth - (margins * 2);
-      let yPosition = margins;
+      const yPosition = margins;
       
       // Calcula altura proporcional da imagem
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -818,7 +837,7 @@ export default function Listas() {
                                 <td className="px-4 py-2">
                                   {tipoReuniao === 'Reunião Ministerial' 
                                     ? (e.descricao ? e.descricao : '—')
-                                    : (e.anciaoAtende ? e.anciaoAtende : '—')
+                                    : (e.anciaoAtende ? reduzirNome(e.anciaoAtende) : '—')
                                   }
                                 </td>
                               </tr>
@@ -950,8 +969,8 @@ export default function Listas() {
                                 <td className="px-4 py-2">{r.horario || '—'}</td>
                                 <td className="px-4 py-2">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
                                 <td className="px-4 py-2">{(() => {
-                                  const membrosLocais = r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '—') : [];
-                                  const membrosOutras = r.membrosOutrasLocalidades ? r.membrosOutrasLocalidades.map(m => `${m.nome} (${m.localidade})`) : [];
+                                  const membrosLocais = r.membros.length > 0 ? r.membros.map(id => reduzirNome(membros.find(m => m.id === id)?.nome || '—')) : [];
+                                  const membrosOutras = r.membrosOutrasLocalidades ? r.membrosOutrasLocalidades.map(m => `${reduzirNome(m.nome)} (${m.localidade})`) : [];
                                   return [...membrosLocais, ...membrosOutras].join(', ') || '—';
                                 })()}</td>
                               </tr>
@@ -1226,12 +1245,12 @@ export default function Listas() {
                                     
                                     // Montar lista de membros locais
                                     const membrosLocais = r.membros && r.membros.length > 0 
-                                      ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').filter(nome => nome !== '-')
+                                      ? r.membros.map(id => reduzirNome(membros.find(m => m.id === id)?.nome || '-')).filter(nome => nome !== '-')
                                       : [];
                                     
                                     // Montar lista de membros de outras localidades
                                     const membrosOutras = r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0
-                                      ? r.membrosOutrasLocalidades.map(m => `${m.nome} (${m.localidade})`)
+                                      ? r.membrosOutrasLocalidades.map(m => `${reduzirNome(m.nome)} (${m.localidade})`)
                                       : [];
                                     
                                     // Concatenar todas as listas
@@ -1818,7 +1837,7 @@ export default function Listas() {
                           <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{e.subtipoReuniao || e.tipo || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -1847,7 +1866,7 @@ export default function Listas() {
                           <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                           <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -1876,7 +1895,7 @@ export default function Listas() {
                           <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                           <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.anciaoAtende || '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -1905,7 +1924,7 @@ export default function Listas() {
                           <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                           <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
                         </tr>
                       ))}
                   </tbody>
@@ -1934,7 +1953,7 @@ export default function Listas() {
                           <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                           <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
                           <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => membros.find((m) => m.id === id)?.nome || '—').join(', ') : '—'}</td>
+                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
                         </tr>
                       ))}
                   </tbody>
