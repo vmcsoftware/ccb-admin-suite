@@ -1150,12 +1150,15 @@ export default function Listas() {
                                     const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                                     const diaSemana = diasSemana[dataObj.getDay()];
                                     const congregacao = congregacoes.find(c => c.id === r.congregacaoId);
+                                    const membrosLocais = r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-') : [];
+                                    const membrosOutras = r.membrosOutrasLocalidades ? r.membrosOutrasLocalidades.map(m => `${m.nome} (${m.localidade})`) : [];
+                                    const todosMembros = [...membrosLocais, ...membrosOutras].join(', ');
                                     return (
                                       <tr key={r.id} className="border border-gray-900 bg-white">
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{r.membros.length > 0 ? r.membros.map(id => membros.find(m => m.id === id)?.nome || '-').join(', ') : '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{todosMembros || '-'}</td>
                                       </tr>
                                     );
                                   })}
