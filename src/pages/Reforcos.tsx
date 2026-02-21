@@ -25,7 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Reforcos() {
-  const { reforcos, adicionar, remover } = useReforcos();
+  const { reforcos, adicionar, remover, atualizar } = useReforcos();
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const [open, setOpen] = useState(false);
@@ -112,12 +112,14 @@ export default function Reforcos() {
 
     setValidationError(null);
     
-    // Se está editando, deletar o antigo e adicionar o novo
+    // Se está editando, atualizar o existente
     if (editingReforcoId) {
-      remover(editingReforcoId);
+      atualizar(editingReforcoId, form);
+    } else {
+      // Se não está editando, adicionar novo
+      adicionar(form);
     }
     
-    adicionar(form);
     setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
     setShowOutraLocalidade(false);
     setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
