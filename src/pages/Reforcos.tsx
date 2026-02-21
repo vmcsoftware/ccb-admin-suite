@@ -33,6 +33,7 @@ export default function Reforcos() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showOutraLocalidade, setShowOutraLocalidade] = useState(false);
   const [showListaMembros, setShowListaMembros] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [novoMembroOutraLocalidade, setNovoMembroOutraLocalidade] = useState({ nome: '', localidade: '', ministerio: 'Ancião' as TipoMinisterio });
   const [filterTipo, setFilterTipo] = useState<'Culto' | 'RJM' | 'Todos'>('Todos');
   const [form, setForm] = useState({
@@ -148,7 +149,7 @@ export default function Reforcos() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.data || !form.congregacaoId) return;
+    if (!form.data || !form.congregacaoId || isSaving) return;
 
     const error = validateReforco(form.data, form.tipo, form.congregacaoId);
     if (error) {
@@ -157,21 +158,29 @@ export default function Reforcos() {
     }
 
     setValidationError(null);
-    
-    // Se está editando, atualizar o existente
-    if (editingReforcoId) {
-      atualizar(editingReforcoId, form);
-    } else {
-      // Se não está editando, adicionar novo
-      adicionar(form);
+    setIsSaving(true);
+
+    try {
+      // Se está editando, atualizar o existente
+      if (editingReforcoId) {
+        atualizar(editingReforcoId, form);
+      } else {
+        // Se não está editando, adicionar novo
+        adicionar(form);
+      }
+      
+      setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
+      setShowOutraLocalidade(false);
+      setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
+      setEditingReforcoId(null);
+      setHorarioAutoPreenchido(false);
+      setOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar reforço:', error);
+      setValidationError('Erro ao salvar. Tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
-    
-    setForm({ data: '', horario: '', tipo: 'Culto', congregacaoId: '', membros: [], membrosOutrasLocalidades: [], observacoes: '' });
-    setShowOutraLocalidade(false);
-    setNovoMembroOutraLocalidade({ nome: '', localidade: '', ministerio: 'Ancião' });
-    setEditingReforcoId(null);
-    setHorarioAutoPreenchido(false);
-    setOpen(false);
   };
 
   const handleEdit = (reforco: Reforco) => {
@@ -247,6 +256,12 @@ export default function Reforcos() {
                 <DialogTitle className="font-display">{editingReforcoId ? 'Editar Reforço' : 'Novo Reforço'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-3">
+                {validationError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{validationError}</AlertDescription>
+                  </Alert>
+                )}
                 <div>
                   <Label>Congregação</Label>
                   <Select 
@@ -493,7 +508,7 @@ export default function Reforcos() {
                   <Input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Opcional" />
                 </div>
                 <div className="flex justify-end">
-                  <Button type="submit">Salvar</Button>
+                  <Button type="submit" disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar'}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -516,13 +531,6 @@ export default function Reforcos() {
             </button>
           ))}
         </div>
-
-        {validationError && (
-          <Alert variant="destructive" className="border-l-4">
-            <AlertCircle className="h-5 w-5" />
-            <AlertDescription className="text-sm">{validationError}</AlertDescription>
-          </Alert>
-        )}
 
         {reforçosOrdenados.length === 0 ? (
           <div className="glass-card rounded-xl p-12 text-center">
