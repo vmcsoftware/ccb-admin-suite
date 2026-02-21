@@ -77,24 +77,41 @@ export default function Reforcos() {
 
     const isCentral = cong?.nome.toLowerCase().includes('central') && cong?.cidade === 'Ituiutaba';
 
-    // Regra especial: Permitir múltiplos reforços apenas na Central de Ituiutaba para quinta-feira
-    const allowMultiple = isCentral && isFifthDay;
-
-    if (!allowMultiple) {
-      const conflicting = reforcos.find((r) => {
+    // Regra especial: Permitir apenas 2 agendamentos no mês para Central de Ituiutaba
+    if (isCentral) {
+      const reforçosNoMes = reforcos.filter((r) => {
         const reforcoDate = new Date(r.data + 'T12:00:00');
         return (
           reforcoDate.getMonth() === selectedMonth &&
           reforcoDate.getFullYear() === selectedYear &&
-          r.tipo === tipo &&
-          r.congregacaoId === congregacaoId
+          r.congregacaoId === congregacaoId &&
+          r.id !== editingReforcoId // Não contar o reforço sendo editado
         );
       });
 
-      if (conflicting) {
+      if (reforçosNoMes.length >= 2) {
         const congNome = cong?.nome || 'Congregação';
-        return `Já existe um reforço de ${tipo} para ${congNome} em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas um reforço por tipo de culto por mês é permitido.`;
+        const totalAgendamentos = editingReforcoId ? reforçosNoMes.length : reforçosNoMes.length + 1;
+        return `A ${congNome} já possui 2 agendamentos no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 2 agendamentos por mês são permitidos para esta congregação.`;
       }
+      return null;
+    }
+
+    // Regra padrão: Apenas um reforço por tipo de culto por mês para outras congregações
+    const conflicting = reforcos.find((r) => {
+      const reforcoDate = new Date(r.data + 'T12:00:00');
+      return (
+        reforcoDate.getMonth() === selectedMonth &&
+        reforcoDate.getFullYear() === selectedYear &&
+        r.tipo === tipo &&
+        r.congregacaoId === congregacaoId &&
+        r.id !== editingReforcoId
+      );
+    });
+
+    if (conflicting) {
+      const congNome = cong?.nome || 'Congregação';
+      return `Já existe um reforço de ${tipo} para ${congNome} em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas um reforço por tipo de culto por mês é permitido.`;
     }
 
     return null;
