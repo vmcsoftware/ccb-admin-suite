@@ -78,6 +78,7 @@ export default function Reforcos() {
     const isCentral = cong?.nome.toLowerCase().includes('central') && cong?.cidade === 'Ituiutaba';
 
     // Regra especial: Permitir apenas 2 agendamentos no mês para Central de Ituiutaba
+    // Um deles DEVE ser impreterivelmente na quinta-feira
     if (isCentral) {
       const reforçosNoMes = reforcos.filter((r) => {
         const reforcoDate = new Date(r.data + 'T12:00:00');
@@ -89,11 +90,23 @@ export default function Reforcos() {
         );
       });
 
+      // Verificar se já existe um reforço na quinta-feira
+      const temQuintaAgendata = reforçosNoMes.some((r) => {
+        const reforcoDate = new Date(r.data + 'T12:00:00');
+        return reforcoDate.getDay() === 4;
+      });
+
       if (reforçosNoMes.length >= 2) {
         const congNome = cong?.nome || 'Congregação';
-        const totalAgendamentos = editingReforcoId ? reforçosNoMes.length : reforçosNoMes.length + 1;
-        return `A ${congNome} já possui 2 agendamentos no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 2 agendamentos por mês são permitidos para esta congregação.`;
+        return `A ${congNome} já possui 2 agendamentos no mês de ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}. Apenas 2 agendamentos por mês são permitidos.`;
       }
+
+      // Se já tem 1 reforço e este não é quinta-feira, e não existe quinta-feira marcada
+      if (reforçosNoMes.length === 1 && !isFifthDay && !temQuintaAgendata) {
+        const congNome = cong?.nome || 'Congregação';
+        return `Já existe um reforço agendado em ${selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} para ${congNome}. O segundo reforço DEVE ser impreterivelmente na quinta-feira.`;
+      }
+
       return null;
     }
 
@@ -218,12 +231,6 @@ export default function Reforcos() {
                 <DialogTitle className="font-display">{editingReforcoId ? 'Editar Reforço' : 'Novo Reforço'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-3">
-                {validationError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{validationError}</AlertDescription>
-                  </Alert>
-                )}
                 <div>
                   <Label>Congregação</Label>
                   <Select 
@@ -493,6 +500,13 @@ export default function Reforcos() {
             </button>
           ))}
         </div>
+
+        {validationError && (
+          <Alert variant="destructive" className="border-l-4">
+            <AlertCircle className="h-5 w-5" />
+            <AlertDescription className="text-sm">{validationError}</AlertDescription>
+          </Alert>
+        )}
 
         {reforçosOrdenados.length === 0 ? (
           <div className="glass-card rounded-xl p-12 text-center">
