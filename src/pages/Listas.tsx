@@ -50,7 +50,7 @@ export default function Listas() {
   const [filtroTiposEventos, setFiltroTiposEventos] = useState<string[]>([]);
 
   // Estado da tela gerenciar
-  const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'avisos' | 'preview' | 'configuracoes'>('reunioes');
+  const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'ensaios' | 'avisos' | 'preview' | 'configuracoes'>('reunioes');
   const [filtroSetorGerenciar, setFiltroSetorGerenciar] = useState('todos');
   const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
   const [eventosParaSelecionar, setEventosParaSelecionar] = useState<string[]>([]);
@@ -950,6 +950,16 @@ export default function Listas() {
             Reuniões
           </button>
           <button
+            onClick={() => setAbaGerenciar('ensaios')}
+            className={`px-4 py-2 font-medium ${
+              abaGerenciar === 'ensaios'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Ensaios Regionais
+          </button>
+          <button
             onClick={() => setAbaGerenciar('avisos')}
             className={`px-4 py-2 font-medium ${
               abaGerenciar === 'avisos'
@@ -1229,12 +1239,12 @@ export default function Listas() {
                 })}
               </div>
             )}
+          </div>
+        )}
 
-            {/* DIVISOR */}
-            {reforcosSalvos.length > 0 && eventosReuniao.length > 0 && (
-              <div className="border-t border-border pt-6" />
-            )}
-
+        {/* ABA: ENSAIOS REGIONAIS */}
+        {abaGerenciar === 'ensaios' && (
+          <div className="space-y-6">
             {/* SEÇÃO: ENSAIOS REGIONAIS */}
             {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
               <div className="space-y-4">
@@ -1308,6 +1318,12 @@ export default function Listas() {
                     </table>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length === 0 && (
+              <div className="glass-card rounded-xl p-12 text-center border-2 border-dashed border-border">
+                <p className="text-muted-foreground">Nenhum ensaio regional agendado para este período.</p>
               </div>
             )}
           </div>
