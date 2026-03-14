@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
-import { useEnsaios, useCongregacoes } from '@/hooks/useData';
+import { useEnsaios, useCongregacoes, useMembros } from '@/hooks/useData';
 import { Ensaio, NivelEnsaio, RegrasEnsaio, DiaEnsaio } from '@/types';
 import { formatarHora24 } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,8 @@ const emptyForm: Omit<Ensaio, 'id'> = {
   nivel: 'Local',
   local: '',
   descricao: '',
+  anciao: '',
+  encarregadoRegional: '',
   regras: [{ ...emptyRegra }],
   ativo: true,
 };
@@ -52,6 +54,7 @@ const emptyForm: Omit<Ensaio, 'id'> = {
 export default function Ensaios() {
   const { ensaios, adicionar, remover, atualizar } = useEnsaios();
   const { congregacoes } = useCongregacoes();
+  const { membros } = useMembros();
   const [form, setForm] = useState(emptyForm);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -194,6 +197,50 @@ export default function Ensaios() {
                     placeholder="Ex: Congregação Ituiutaba"
                     required
                   />
+                </div>
+
+                <div>
+                  <Label>Ancião</Label>
+                  <Select
+                    value={form.anciao || ''}
+                    onValueChange={(value) =>
+                      setForm({ ...form, anciao: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um ancião" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {membros.map((membro) => (
+                        <SelectItem key={membro.id} value={membro.id}>
+                          {membro.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Encarregado Regional</Label>
+                  <Select
+                    value={form.encarregadoRegional || ''}
+                    onValueChange={(value) =>
+                      setForm({ ...form, encarregadoRegional: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um encarregado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhum</SelectItem>
+                      {membros.map((membro) => (
+                        <SelectItem key={membro.id} value={membro.id}>
+                          {membro.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="sm:col-span-2">
@@ -471,6 +518,18 @@ export default function Ensaios() {
                     {ensaio.descricao && (
                       <p className="text-sm mt-1">{ensaio.descricao}</p>
                     )}
+                    <div className="text-sm mt-2 space-y-1">
+                      {ensaio.anciao && (
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Ancião:</span> {membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao}
+                        </p>
+                      )}
+                      {ensaio.encarregadoRegional && (
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold">Encarregado Regional:</span> {membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button

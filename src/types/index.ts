@@ -106,6 +106,8 @@ export interface Ensaio {
   nivel: NivelEnsaio;
   local: string;
   descricao?: string;
+  anciao?: string;
+  encarregadoRegional?: string;
   regras: RegrasEnsaio[];
   ativo: boolean;
   criadoEm?: string;

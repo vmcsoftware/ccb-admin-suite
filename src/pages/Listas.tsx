@@ -475,7 +475,7 @@ export default function Listas() {
   };
 
   const getEnsaiosAgendados = (mes: number, ano: number) => {
-    const ensaiosAgendados: { titulo: string; data: string; horario: string; local: string }[] = [];
+    const ensaiosAgendados: { titulo: string; data: string; horario: string; local: string; anciao?: string; encarregadoRegional?: string }[] = [];
     
     ensaios.forEach(ensaio => {
       if (!ensaio.ativo) return;
@@ -492,6 +492,8 @@ export default function Listas() {
             data,
             horario: regra.horario,
             local: ensaio.local,
+            anciao: ensaio.anciao,
+            encarregadoRegional: ensaio.encarregadoRegional,
           });
         });
       });
@@ -1514,6 +1516,8 @@ export default function Listas() {
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENSAIO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCAL</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENC. REGIONAL</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1522,6 +1526,8 @@ export default function Listas() {
                               const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
                               const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                               const diaSemana = diasSemanaAbr[dataObj.getDay()];
+                              const nomeAnciao = ensaio.anciao ? membros.find(m => m.id === ensaio.anciao)?.nome || '-' : '-';
+                              const nomeEncarregado = ensaio.encarregadoRegional ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-' : '-';
                               
                               return (
                                 <tr key={idx} className="border border-gray-900 bg-white">
@@ -1529,6 +1535,8 @@ export default function Listas() {
                                   <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{ensaio.horario}</td>
                                   <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.titulo}</td>
                                   <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.local}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{reduzirNome(nomeAnciao)}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{reduzirNome(nomeEncarregado)}</td>
                                 </tr>
                               );
                             })}
