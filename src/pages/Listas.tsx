@@ -455,8 +455,9 @@ export default function Listas() {
       const style = document.createElement('style');
       style.innerHTML = `
         table { break-inside: avoid; page-break-inside: avoid; }
+        tbody tr { break-inside: avoid; page-break-inside: avoid; }
+        thead tr { break-inside: avoid; page-break-inside: avoid; }
         .lista-section { break-inside: avoid; page-break-inside: avoid; }
-        tr { break-inside: avoid; page-break-inside: avoid; }
       `;
       document.head.appendChild(style);
       
@@ -467,6 +468,7 @@ export default function Listas() {
           backgroundColor: '#ffffff',
           windowWidth: 1200,
           logging: false,
+          allowTaint: true,
         });
         
         // Usar JPEG para melhor compressão e qualidade
@@ -484,33 +486,59 @@ export default function Listas() {
         
         // Calcula altura proporcional da imagem
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        // Reduzir um pouco o maxHeightPerPage para deixar margem de segurança
         const maxHeightPerPage = pageHeight - (margins * 3);
         
-        // Detectar pontos de quebra baseado nas seções (divs com classe lista-section)
-        const sections = element.querySelectorAll('.lista-section, > div > div');
-        const sectionBreakPoints: number[] = [imgHeight];
+        // Detectar pontos de quebra inteligentes
+        const breakPoints: number[] = [imgHeight];
         
+        // 1. Adicionar final de cada seção como ponto de quebra
+        const sections = element.querySelectorAll('.lista-section');
         sections.forEach((section) => {
           const rect = section.getBoundingClientRect();
-          const elementTop = rect.top - element.getBoundingClientRect().top;
-          const sectionHeight = (elementTop * imgWidth) / (element.scrollWidth || element.clientWidth);
-          if (sectionHeight < imgHeight && sectionHeight > 0) {
-            sectionBreakPoints.push(sectionHeight);
+          const sectionBottom = rect.bottom - element.getBoundingClientRect().top;
+          const sectionHeightInPDF = (sectionBottom * imgWidth) / (element.scrollWidth || element.clientWidth);
+          if (sectionHeightInPDF < imgHeight && sectionHeightInPDF > 0) {
+            breakPoints.push(sectionHeightInPDF + 2); // +2mm de margem
           }
         });
         
-        sectionBreakPoints.sort((a, b) => a - b);
+        // 2. Adicionar final de cada linha de tabela como ponto de quebra
+        const tableRows = element.querySelectorAll('tbody tr');
+        tableRows.forEach((row) => {
+          const rect = row.getBoundingClientRect();
+          const rowBottom = rect.bottom - element.getBoundingClientRect().top;
+          const rowHeightInPDF = (rowBottom * imgWidth) / (element.scrollWidth || element.clientWidth);
+          if (rowHeightInPDF < imgHeight && rowHeightInPDF > 0) {
+            breakPoints.push(rowHeightInPDF);
+          }
+        });
         
-        // Função para encontrar melhor ponto de quebra
-        const findBestBreakPoint = (currentY: number, nextLimit: number): number => {
-          const availableSpace = Math.min(nextLimit - currentY, maxHeightPerPage);
+        // Remover duplicatas e ordenar
+        const uniqueBreakPoints = [...new Set(breakPoints)].sort((a, b) => a - b);
+        
+        // Função para encontrar melhor ponto de quebra (fim de linha de tabela)
+        const findBestBreakPoint = (currentY: number, maxY: number): number => {
+          const availableSpace = Math.min(maxY - currentY, maxHeightPerPage);
           
-          // Encontrar a seção mais próxima que cabe no espaço
+          // Procurar o melhor ponto de quebra que cabe no espaço disponível
           let bestBreak = currentY + availableSpace;
-          for (const breakPoint of sectionBreakPoints) {
+          
+          for (let i = uniqueBreakPoints.length - 1; i >= 0; i--) {
+            const breakPoint = uniqueBreakPoints[i];
             if (breakPoint > currentY && breakPoint <= currentY + availableSpace) {
               bestBreak = breakPoint;
+              break;
+            }
+          }
+          
+          // Se nenhum ponto de quebra for encontrado, quebrar no espaço disponível
+          if (bestBreak === currentY + availableSpace) {
+            // Procurar o próximo ponto de quebra após o espaço disponível
+            for (const breakPoint of uniqueBreakPoints) {
+              if (breakPoint > currentY + availableSpace) {
+                bestBreak = Math.min(breakPoint, currentY + availableSpace + 5); // permitir pequeno overflow
+                break;
+              }
             }
           }
           
@@ -525,10 +553,13 @@ export default function Listas() {
           const nextBreak = findBestBreakPoint(currentY, imgHeight);
           const heightToCopy = Math.min(nextBreak - currentY, maxHeightPerPage);
           
+          // Se a altura calculada for muito pequena, usar o espaço disponível
+          const finalHeight = heightToCopy < 10 ? maxHeightPerPage : heightToCopy;
+          
           // Criar canvas temporário para cada seção
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = canvas.width;
-          tempCanvas.height = (heightToCopy / imgHeight) * canvas.height;
+          tempCanvas.height = (finalHeight / imgHeight) * canvas.height;
           
           const ctx = tempCanvas.getContext('2d');
           if (ctx) {
@@ -537,11 +568,11 @@ export default function Listas() {
               0,
               (currentY / imgHeight) * canvas.height,
               canvas.width,
-              (heightToCopy / imgHeight) * canvas.height,
+              (finalHeight / imgHeight) * canvas.height,
               0,
               0,
               canvas.width,
-              (heightToCopy / imgHeight) * canvas.height
+              (finalHeight / imgHeight) * canvas.height
             );
           }
           
@@ -549,15 +580,18 @@ export default function Listas() {
           
           if (pageNum === 0) {
             // Primeira página
-            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, finalHeight);
           } else {
             // Páginas subsequentes
             pdf.addPage();
-            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, finalHeight);
           }
           
           currentY = nextBreak;
           pageNum++;
+          
+          // Segurança: evitar loop infinito
+          if (pageNum > 100) break;
         }
         
         pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
