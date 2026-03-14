@@ -1496,166 +1496,175 @@ export default function Listas() {
                       <div className="text-sm font-bold mt-1.5">{listaEditando?.nome || 'LISTA'}</div>
                     </div>
 
-                    {/* EVENTOS SELECIONADOS */}
-                    {eventosParaSelecionar.length > 0 && (
-                      <div className="space-y-2">
-                        {getSortedEventTypes([...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))]).map(tipo => {
-                          const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
-                          return (
-                            <div key={tipo} className="lista-section space-y-1">
-                              <div className="flex items-center justify-between pb-1 border-b border-gray-900">
-                                <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
-                                <input type="checkbox" className="w-4 h-4 cursor-pointer" />
-                              </div>
-                              <table className="w-full border-collapse">
-                                <thead>
-                                  <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {eventos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map((e, index) => {
-                                    const dataObj = new Date(e.data + 'T12:00:00');
-                                    const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-                                    const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                                    const diaSemana = diasSemana[dataObj.getDay()];
-                                    const congregacao = congregacoes.find(c => c.id === e.congregacaoId);
-                                    return (
-                                      <tr key={e.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
-                                        {tipo !== 'Reuniões' && (
-                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>
-                                            {tipo === 'Reunião Ministerial' 
-                                              ? (e.descricao ? e.descricao : '-')
-                                              : (reduzirNome(e.anciaoAtende) ? reduzirNome(e.anciaoAtende) : '-')
-                                            }
-                                          </td>
-                                        )}
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* REFORÇOS SELECIONADOS */}
-                    {reforcoParaSelecionar.length > 0 && (
-                      <div className="space-y-2">
-                        {getSortedEventTypes([...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))]).map(tipo => {
-                          const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
-                          return (
-                            <div key={tipo} className="lista-section space-y-1">
-                              <div className="flex items-center justify-between pb-1 border-b border-gray-900">
-                                <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {getDisplayName(tipo)}</h5>
-                                <input type="checkbox" className="w-4 h-4 cursor-pointer" />
-                              </div>
-                              <table className="w-full border-collapse">
-                                <thead>
-                                  <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map((r, index) => {
-                                    const dataObj = new Date(r.data + 'T12:00:00');
-                                    const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-                                    const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                                    const diaSemana = diasSemanaAbr[dataObj.getDay()];
-                                    const congregacao = congregacoes.find(c => c.id === r.congregacaoId);
-                                    
-                                    // Montar lista de membros locais
-                                    const membrosLocais = r.membros && r.membros.length > 0 
-                                      ? r.membros.map(id => reduzirNome(membros.find(m => m.id === id)?.nome || '-')).filter(nome => nome !== '-')
-                                      : [];
-                                    
-                                    // Montar lista de membros de outras localidades
-                                    const membrosOutras = r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0
-                                      ? r.membrosOutrasLocalidades.map(m => `${reduzirNome(m.nome)} (${m.localidade})`)
-                                      : [];
-                                    
-                                    // Concatenar todas as listas
-                                    const todosMembros = [...membrosLocais, ...membrosOutras].join(', ') || '-';
-                                    
-                                    return (
-                                      <tr key={r.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{todosMembros}</td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* ENSAIOS REGIONAIS AGENDADOS */}
-                    {ensaiosParaSelecionar.length > 0 && ensaios.length > 0 && (
-                      <div className="lista-section space-y-1">
-                        <div className="flex items-center justify-between pb-1 border-b border-gray-900">
-                          <h5 className="font-bold text-sm text-gray-900 uppercase">ENSAIOS REGIONAIS</h5>
-                          <input type="checkbox" className="w-4 h-4 cursor-pointer" />
-                        </div>
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="bg-gray-300 border border-gray-900">
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORÁRIO</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>CONGREGAÇÃO</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENC. REGIONAL</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ensaios.filter((ensaio) => 
-                              ensaiosParaSelecionar.includes(ensaio.id)
-                            ).map((ensaio, idx) => {
-                              const nomeAnciao = ensaio.anciaoOutraLocalidade
-                                ? ensaio.anciaoOutraLocalidade.nome
-                                : ensaio.anciao 
-                                  ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || '-')
-                                  : '-';
-                              
-                              const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
-                                ? ensaio.encarregadoRegionalOutraLocalidade.nome
-                                : ensaio.encarregadoRegional
-                                  ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-')
-                                  : '-';
-                              
-                              const dataBR = ensaio.data 
-                                ? new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-                                : '-';
-                              
+                    {/* EVENTOS, REFORÇOS E ENSAIOS - ORDENADOS CONFORME CONFIGURAÇÃO DO USUÁRIO */}
+                    {(() => {
+                      // Coletar todos os tipos de serviços
+                      const tiposEventos = [...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))];
+                      const tiposReforcos = [...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))];
+                      const tiposEnsaios = ensaiosParaSelecionar.length > 0 ? ['Ensaio Regional'] : [];
+                      
+                      // Consolidar e ordenar
+                      const todosTipos = getSortedEventTypes([...tiposEventos, ...tiposReforcos, ...tiposEnsaios]);
+                      
+                      return todosTipos.length > 0 && (
+                        <div className="space-y-2">
+                          {todosTipos.map((tipo) => {
+                            // Determinar qual seção renderizar
+                            const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
+                            const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
+                            const ensaiosFiltered = tipo === 'Ensaio Regional' ? ensaios.filter(e => ensaiosParaSelecionar.includes(e.id)) : [];
+                            
+                            if (eventos.length === 0 && reforcosFiltered.length === 0 && ensaiosFiltered.length === 0) {
+                              return null;
+                            }
+                            
+                            // Renderizar EVENTOS
+                            if (eventos.length > 0) {
                               return (
-                                <tr key={idx} className="border border-gray-900 bg-white">
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.horario || '-'}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(ensaio.congregacaoId) || '-'}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeAnciao}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeEncarregado}</td>
-                                </tr>
+                                <div key={`evento-${tipo}`} className="lista-section space-y-1">
+                                  <div className="flex items-center justify-between pb-1 border-b border-gray-900">
+                                    <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
+                                    <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                                  </div>
+                                  <table className="w-full border-collapse">
+                                    <thead>
+                                      <tr className="bg-gray-300 border border-gray-900">
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                        {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {eventos.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()).map((e, index) => {
+                                        const dataObj = new Date(e.data + 'T12:00:00');
+                                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                                        const diaSemana = diasSemana[dataObj.getDay()];
+                                        return (
+                                          <tr key={e.id} className="border border-gray-900 bg-white">
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                            {tipo !== 'Reuniões' && (
+                                              <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>
+                                                {tipo === 'Reunião Ministerial' 
+                                                  ? (e.descricao ? e.descricao : '-')
+                                                  : (reduzirNome(e.anciaoAtende) ? reduzirNome(e.anciaoAtende) : '-')
+                                                }
+                                              </td>
+                                            )}
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
                               );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                            }
+                            
+                            // Renderizar REFORÇOS
+                            if (reforcosFiltered.length > 0) {
+                              return (
+                                <div key={`reforco-${tipo}`} className="lista-section space-y-1">
+                                  <div className="flex items-center justify-between pb-1 border-b border-gray-900">
+                                    <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {getDisplayName(tipo)}</h5>
+                                    <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                                  </div>
+                                  <table className="w-full border-collapse">
+                                    <thead>
+                                      <tr className="bg-gray-300 border border-gray-900">
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map((r) => {
+                                        const dataObj = new Date(r.data + 'T12:00:00');
+                                        const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                                        const diaSemana = diasSemanaAbr[dataObj.getDay()];
+                                        
+                                        const membrosLocais = r.membros && r.membros.length > 0 
+                                          ? r.membros.map(id => reduzirNome(membros.find(m => m.id === id)?.nome || '-')).filter(nome => nome !== '-')
+                                          : [];
+                                        const membrosOutras = r.membrosOutrasLocalidades && r.membrosOutrasLocalidades.length > 0
+                                          ? r.membrosOutrasLocalidades.map(m => `${reduzirNome(m.nome)} (${m.localidade})`)
+                                          : [];
+                                        const todosMembros = [...membrosLocais, ...membrosOutras].join(', ') || '-';
+                                        
+                                        return (
+                                          <tr key={r.id} className="border border-gray-900 bg-white">
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{todosMembros}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            }
+                            
+                            // Renderizar ENSAIOS REGIONAIS
+                            if (ensaiosFiltered.length > 0) {
+                              return (
+                                <div key={`ensaio-${tipo}`} className="lista-section space-y-1">
+                                  <div className="flex items-center justify-between pb-1 border-b border-gray-900">
+                                    <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
+                                    <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                                  </div>
+                                  <table className="w-full border-collapse">
+                                    <thead>
+                                      <tr className="bg-gray-300 border border-gray-900">
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORÁRIO</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>CONGREGAÇÃO</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
+                                        <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENC. REGIONAL</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {ensaiosFiltered.map((ensaio) => {
+                                        const nomeAnciao = ensaio.anciaoOutraLocalidade
+                                          ? ensaio.anciaoOutraLocalidade.nome
+                                          : ensaio.anciao 
+                                            ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || '-')
+                                            : '-';
+                                        const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
+                                          ? ensaio.encarregadoRegionalOutraLocalidade.nome
+                                          : ensaio.encarregadoRegional
+                                            ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-')
+                                            : '-';
+                                        const dataBR = ensaio.data 
+                                          ? new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                                          : '-';
+                                        
+                                        return (
+                                          <tr key={ensaio.id} className="border border-gray-900 bg-white">
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.horario || '-'}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(ensaio.congregacaoId) || '-'}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeAnciao}</td>
+                                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeEncarregado}</td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            }
+                            
+                            return null;
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     {/* RODAPÉ: AVISOS */}
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
