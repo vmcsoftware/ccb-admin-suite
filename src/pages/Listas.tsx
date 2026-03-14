@@ -1273,27 +1273,41 @@ export default function Listas() {
                         </tr>
                       </thead>
                       <tbody>
-                        {ensaios.map((ensaio) => (
-                          <tr key={ensaio.id} className="border-b border-border hover:bg-muted/30">
-                            <td className="px-4 py-2">
-                              <Checkbox 
-                                checked={ensaiosParaSelecionar.includes(ensaio.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setEnsaiosParaSelecionar(prev => [...prev, ensaio.id])
-                                  } else {
-                                    setEnsaiosParaSelecionar(prev => prev.filter(id => id !== ensaio.id))
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
-                            <td className="px-4 py-2">{ensaio.nivel}</td>
-                            <td className="px-4 py-2">{ensaio.local || '—'}</td>
-                            <td className="px-4 py-2">{ensaio.anciao ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao) : '—'}</td>
-                            <td className="px-4 py-2">{ensaio.encarregadoRegional ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional) : '—'}</td>
-                          </tr>
-                        ))}
+                        {ensaios.map((ensaio) => {
+                          const nomeAnciao = ensaio.anciaoOutraLocalidade 
+                            ? `${ensaio.anciaoOutraLocalidade.nome} (${ensaio.anciaoOutraLocalidade.localidade})`
+                            : ensaio.anciao 
+                              ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao)
+                              : '—';
+                          
+                          const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
+                            ? `${ensaio.encarregadoRegionalOutraLocalidade.nome} (${ensaio.encarregadoRegionalOutraLocalidade.localidade})`
+                            : ensaio.encarregadoRegional
+                              ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional)
+                              : '—';
+                          
+                          return (
+                            <tr key={ensaio.id} className="border-b border-border hover:bg-muted/30">
+                              <td className="px-4 py-2">
+                                <Checkbox 
+                                  checked={ensaiosParaSelecionar.includes(ensaio.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setEnsaiosParaSelecionar(prev => [...prev, ensaio.id])
+                                    } else {
+                                      setEnsaiosParaSelecionar(prev => prev.filter(id => id !== ensaio.id))
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
+                              <td className="px-4 py-2">{ensaio.nivel}</td>
+                              <td className="px-4 py-2">{ensaio.local || '—'}</td>
+                              <td className="px-4 py-2 text-xs">{nomeAnciao}</td>
+                              <td className="px-4 py-2 text-xs">{nomeEncarregado}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1611,8 +1625,17 @@ export default function Listas() {
                             {ensaios.filter((ensaio) => 
                               ensaiosParaSelecionar.includes(ensaio.id)
                             ).map((ensaio, idx) => {
-                              const nomeAnciao = ensaio.anciao ? membros.find(m => m.id === ensaio.anciao)?.nome || '-' : '-';
-                              const nomeEncarregado = ensaio.encarregadoRegional ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-' : '-';
+                              const nomeAnciao = ensaio.anciaoOutraLocalidade
+                                ? `${ensaio.anciaoOutraLocalidade.nome} (${ensaio.anciaoOutraLocalidade.localidade})`
+                                : ensaio.anciao 
+                                  ? membros.find(m => m.id === ensaio.anciao)?.nome || '-'
+                                  : '-';
+                              
+                              const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
+                                ? `${ensaio.encarregadoRegionalOutraLocalidade.nome} (${ensaio.encarregadoRegionalOutraLocalidade.localidade})`
+                                : ensaio.encarregadoRegional
+                                  ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-'
+                                  : '-';
                               
                               return (
                                 <tr key={idx} className="border border-gray-900 bg-white">
