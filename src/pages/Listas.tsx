@@ -335,9 +335,9 @@ export default function Listas() {
 
   const getPaddingClass = () => {
     switch (previewListasConfig.cellHeight) {
-      case 'pequeno': return 'py-1 px-2';
-      case 'grande': return 'py-4 px-3';
-      default: return 'py-2 px-2.5';
+      case 'pequeno': return 'py-0.5 px-1';
+      case 'grande': return 'py-3 px-2';
+      default: return 'py-1 px-1.5';
     }
   };
 
@@ -1246,10 +1246,10 @@ export default function Listas() {
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1261,11 +1261,11 @@ export default function Listas() {
                                     const congregacao = congregacoes.find(c => c.id === e.congregacaoId);
                                     return (
                                       <tr key={e.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
                                         {tipo !== 'Reuniões' && (
-                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>
+                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>
                                             {tipo === 'Reunião Ministerial' 
                                               ? (e.descricao ? e.descricao : '-')
                                               : (reduzirNome(e.anciaoAtende) ? reduzirNome(e.anciaoAtende) : '-')
@@ -1297,10 +1297,10 @@ export default function Listas() {
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1326,10 +1326,10 @@ export default function Listas() {
                                     
                                     return (
                                       <tr key={r.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{todosMembros}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{todosMembros}</td>
                                       </tr>
                                     );
                                   })}
