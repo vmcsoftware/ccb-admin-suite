@@ -17,6 +17,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -57,6 +58,12 @@ export default function Resultados() {
   const getCongregacaoNome = (id: string) => {
     const cong = congregacoes.find((c) => c.id === id);
     return cong?.nome || '—';
+  };
+
+  const reduzirNome = (nome: string) => {
+    if (!nome) return '—';
+    const partes = nome.split(' ');
+    return partes.length > 1 ? partes[0] + ' ' + partes[partes.length - 1] : nome;
   };
 
   // Handlers Batismo
@@ -231,6 +238,7 @@ export default function Resultados() {
                 <DialogContent className="max-h-[60vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Importar Batismo</DialogTitle>
+                    <DialogDescription>Selecione um batismo salvo para carregar os dados automaticamente</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-2">
                     {eventosComTipo('Batismo').map((evento: any) => (
@@ -241,6 +249,7 @@ export default function Resultados() {
                       >
                         <div className="font-semibold">{getCongregacaoNome(evento.congregacaoId)}</div>
                         <div className="text-sm text-gray-500">{new Date(evento.data).toLocaleDateString('pt-BR')}</div>
+                        {evento.anciaoAtende && <div className="text-xs text-gray-600 mt-1">Atendido por: {reduzirNome(evento.anciaoAtende)}</div>}
                       </button>
                     ))}
                     {eventosComTipo('Batismo').length === 0 && (
@@ -265,6 +274,7 @@ export default function Resultados() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingBatismo ? 'Editar Batismo' : 'Novo Batismo'}</DialogTitle>
+                  <DialogDescription>{editingBatismo ? 'Atualize os dados do batismo' : 'Registre um novo batismo'}</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitBatismo} className="space-y-4">
                   <div>
@@ -369,6 +379,7 @@ export default function Resultados() {
                 <DialogContent className="max-h-[60vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Importar Santa Ceia</DialogTitle>
+                    <DialogDescription>Selecione uma Santa Ceia salva para carregar os dados automaticamente</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-2">
                     {eventosComTipo('Santa Ceia').map((evento: any) => (
@@ -379,6 +390,7 @@ export default function Resultados() {
                       >
                         <div className="font-semibold">{getCongregacaoNome(evento.congregacaoId)}</div>
                         <div className="text-sm text-gray-500">{new Date(evento.data).toLocaleDateString('pt-BR')}</div>
+                        {evento.anciaoAtende && <div className="text-xs text-gray-600 mt-1">Atendido por: {reduzirNome(evento.anciaoAtende)}</div>}
                       </button>
                     ))}
                     {eventosComTipo('Santa Ceia').length === 0 && (
@@ -403,6 +415,7 @@ export default function Resultados() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingSantaCeia ? 'Editar Santa Ceia' : 'Nova Santa Ceia'}</DialogTitle>
+                  <DialogDescription>{editingSantaCeia ? 'Atualize os dados da Santa Ceia' : 'Registre uma nova Santa Ceia'}</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitSantaCeia} className="space-y-4">
                   <div>
@@ -507,6 +520,7 @@ export default function Resultados() {
                 <DialogContent className="max-h-[60vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Importar Ensaio Regional</DialogTitle>
+                    <DialogDescription>Selecione um ensaio regional salvo para carregar os dados automaticamente</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-2">
                     {ensaiosSalvos?.map((ensaio: any) => (
@@ -517,7 +531,9 @@ export default function Resultados() {
                       >
                         <div className="font-semibold">{ensaio.titulo}</div>
                         <div className="text-sm text-gray-600">Local: {ensaio.local}</div>
-                        <div className="text-sm text-gray-500">{new Date(ensaio.data).toLocaleDateString('pt-BR')}</div>
+                        <div className="text-sm text-gray-500">{ensaio.data ? new Date(ensaio.data).toLocaleDateString('pt-BR') : '—'}</div>
+                        {ensaio.anciao && <div className="text-xs text-gray-600 mt-1">Ancião: {reduzirNome(ensaio.anciao)}</div>}
+                        {ensaio.encarregadoRegional && <div className="text-xs text-gray-600">Encarregado: {reduzirNome(ensaio.encarregadoRegional)}</div>}
                       </button>
                     ))}
                     {!ensaiosSalvos || ensaiosSalvos.length === 0 && (
@@ -543,6 +559,7 @@ export default function Resultados() {
               <DialogContent className="max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingEnsaio ? 'Editar Ensaio' : 'Novo Ensaio Regional'}</DialogTitle>
+                  <DialogDescription>{editingEnsaio ? 'Atualize os dados do ensaio' : 'Registre um novo ensaio regional'}</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitEnsaio} className="space-y-4">
                   <div>
