@@ -1267,10 +1267,10 @@ export default function Listas() {
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    {tipo !== 'Reuniões' && <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{tipo === 'Reunião Ministerial' ? 'PARTICIPAM' : 'ANCIÃO'}</th>}
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1282,11 +1282,11 @@ export default function Listas() {
                                     const congregacao = congregacoes.find(c => c.id === e.congregacaoId);
                                     return (
                                       <tr key={e.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
                                         {tipo !== 'Reuniões' && (
-                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>
+                                          <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>
                                             {tipo === 'Reunião Ministerial' 
                                               ? (e.descricao ? e.descricao : '-')
                                               : (reduzirNome(e.anciaoAtende) ? reduzirNome(e.anciaoAtende) : '-')
@@ -1318,10 +1318,10 @@ export default function Listas() {
                               <table className="w-full border-collapse">
                                 <thead>
                                   <tr className="bg-gray-300 border border-gray-900">
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
-                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                                    <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -1347,10 +1347,10 @@ export default function Listas() {
                                     
                                     return (
                                       <tr key={r.id} className="border border-gray-900 bg-white">
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
-                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{todosMembros}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
+                                        <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{todosMembros}</td>
                                       </tr>
                                     );
                                   })}
@@ -1372,15 +1372,15 @@ export default function Listas() {
                         <table className="w-full border-collapse">
                           <thead>
                             <tr className="bg-gray-300 border border-gray-900">
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>ASSUNTO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ASSUNTO</th>
                             </tr>
                           </thead>
                           <tbody>
                             {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map((aviso) => (
                               <tr key={aviso.id} className="border border-gray-900 bg-white">
-                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{aviso.titulo}</td>
-                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left text-gray-800 break-words`}>{aviso.assunto}</td>
+                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{aviso.titulo}</td>
+                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-800 break-words`}>{aviso.assunto}</td>
                               </tr>
                             ))}
                           </tbody>
