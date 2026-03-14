@@ -1345,7 +1345,7 @@ export default function Listas() {
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between pb-2 border-b border-gray-900">
-                          <h5 className="font-bold text-sm text-gray-900 uppercase">AVISOS</h5>
+                          <h5 className={`font-bold ${getFontSizeClass()} text-gray-900 uppercase`}>AVISOS</h5>
                           <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                         </div>
                         <table className="w-full border-collapse">
@@ -1358,7 +1358,7 @@ export default function Listas() {
                           <tbody>
                             {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map((aviso) => (
                               <tr key={aviso.id} className="border border-gray-900 bg-white">
-                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 font-bold break-words`}>{aviso.titulo}</td>
+                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} ${getFontSizeClass()} text-center text-gray-900 break-words`}>{aviso.titulo}</td>
                                 <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left text-gray-800 break-words`}>{aviso.assunto}</td>
                               </tr>
                             ))}
