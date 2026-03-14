@@ -220,8 +220,16 @@ export default function Reforcos() {
     ? reforcos 
     : reforcos.filter(r => r.tipo === filterTipo);
 
+  // Filtrar apenas reforços com data futura ou de hoje
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const reforçosAtivos = reforcosFiltrados.filter(r => {
+    const reforcoDate = new Date(r.data + 'T00:00:00');
+    return reforcoDate >= today;
+  });
+
   // Ordenar reforços por data e depois por congregação
-  const reforçosOrdenados = [...reforcosFiltrados]
+  const reforçosOrdenados = [...reforçosAtivos]
     .sort((a, b) => {
       const dateCmp = new Date(a.data).getTime() - new Date(b.data).getTime();
       if (dateCmp !== 0) return dateCmp;
