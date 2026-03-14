@@ -453,13 +453,12 @@ export default function Listas() {
       
       // Adicionar estilos de quebra de página antes de renderizar
       const style = document.createElement('style');
-      // 10mm ≈ 37.8 pixels (em escala de tela 1:1), com scale 2 no html2canvas será 18.9 pixels visíveis
       style.innerHTML = `
         table { break-inside: avoid; page-break-inside: avoid; }
-        tbody tr { break-inside: avoid; page-break-inside: avoid; min-height: 10mm; height: 10mm; }
+        tbody tr { break-inside: avoid; page-break-inside: avoid; height: 7mm; }
         thead tr { break-inside: avoid; page-break-inside: avoid; }
-        .lista-section { break-inside: avoid; page-break-inside: avoid; }
         td, th { vertical-align: middle; }
+        .lista-section { break-inside: avoid; page-break-inside: avoid; }
       `;
       document.head.appendChild(style);
       
