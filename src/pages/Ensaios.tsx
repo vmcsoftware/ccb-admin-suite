@@ -211,7 +211,6 @@ export default function Ensaios() {
                       <SelectValue placeholder="Selecione um ancião" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
                       {membros.map((membro) => (
                         <SelectItem key={membro.id} value={membro.id}>
                           {membro.nome}
@@ -233,7 +232,6 @@ export default function Ensaios() {
                       <SelectValue placeholder="Selecione um encarregado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
                       {membros.map((membro) => (
                         <SelectItem key={membro.id} value={membro.id}>
                           {membro.nome}
