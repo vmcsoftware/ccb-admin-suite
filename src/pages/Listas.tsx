@@ -50,7 +50,7 @@ export default function Listas() {
   const [filtroTiposEventos, setFiltroTiposEventos] = useState<string[]>([]);
 
   // Estado da tela gerenciar
-  const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'ensaios' | 'avisos' | 'preview' | 'configuracoes'>('reunioes');
+  const [abaGerenciar, setAbaGerenciar] = useState<'reunioes' | 'avisos' | 'preview' | 'configuracoes'>('reunioes');
   const [filtroSetorGerenciar, setFiltroSetorGerenciar] = useState('todos');
   const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
   const [eventosParaSelecionar, setEventosParaSelecionar] = useState<string[]>([]);
@@ -759,8 +759,7 @@ export default function Listas() {
     setReforcoParaSelecionar(todosReforcos);
 
     // Importar todos os ensaios
-    const ensaiosAgendados = getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear());
-    const todosEnsaios = ensaiosAgendados.map((_, idx) => `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`);
+    const todosEnsaios = ensaios.map(e => e.id);
     setEnsaiosParaSelecionar(todosEnsaios);
   };
 
@@ -948,16 +947,6 @@ export default function Listas() {
             }`}
           >
             Reuniões
-          </button>
-          <button
-            onClick={() => setAbaGerenciar('ensaios')}
-            className={`px-4 py-2 font-medium ${
-              abaGerenciar === 'ensaios'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Ensaios Regionais
           </button>
           <button
             onClick={() => setAbaGerenciar('avisos')}
@@ -1239,24 +1228,24 @@ export default function Listas() {
                 })}
               </div>
             )}
-          </div>
-        )}
 
-        {/* ABA: ENSAIOS REGIONAIS */}
-        {abaGerenciar === 'ensaios' && (
-          <div className="space-y-6">
+            {/* DIVISOR */}
+            {reforcosSalvos.length > 0 && eventosReuniao.length > 0 && (
+              <div className="border-t border-border pt-6" />
+            )}
+
             {/* SEÇÃO: ENSAIOS REGIONAIS */}
-            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
+            {ensaios.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-foreground">Ensaios Regionais (Selecione para Preview)</h3>
                   <Badge variant="secondary">
-                    {ensaiosParaSelecionar.length}/{getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length} selecionados
+                    {ensaiosParaSelecionar.length}/{ensaios.length} selecionados
                   </Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-foreground uppercase">Ensaios Regionais</h4>
+                  <h4 className="font-semibold text-sm text-foreground uppercase">Ensaios Regionais Salvos</h4>
                   <div className="glass-card rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
@@ -1264,66 +1253,51 @@ export default function Listas() {
                           <th className="px-4 py-2 text-left w-8">
                             <Checkbox 
                               checked={
-                                getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 &&
-                                getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).every((_, idx) =>
-                                  ensaiosParaSelecionar.includes(`ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`)
-                                )
+                                ensaios.length > 0 &&
+                                ensaios.every((e) => ensaiosParaSelecionar.includes(e.id))
                               }
                               onCheckedChange={(checked) => {
-                                const ensaiosAgendados = getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear());
                                 if (checked) {
-                                  const novoIds = ensaiosAgendados.map((_, idx) => `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`);
-                                  setEnsaiosParaSelecionar(prev => [...new Set([...prev, ...novoIds])])
+                                  setEnsaiosParaSelecionar(prev => [...new Set([...prev, ...ensaios.map(e => e.id)])])
                                 } else {
-                                  setEnsaiosParaSelecionar(prev => prev.filter(id => !id.startsWith('ensaio-')))
+                                  setEnsaiosParaSelecionar(prev => prev.filter(id => !ensaios.some(e => e.id === id)))
                                 }
                               }}
                             />
                           </th>
                           <th className="px-4 py-2 text-left">Título</th>
-                          <th className="px-4 py-2 text-left">Data</th>
-                          <th className="px-4 py-2 text-left">Hora</th>
+                          <th className="px-4 py-2 text-left">Nível</th>
                           <th className="px-4 py-2 text-left">Local</th>
                           <th className="px-4 py-2 text-left">Ancião</th>
                           <th className="px-4 py-2 text-left">Encarregado Regional</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).map((ensaio, idx) => {
-                          const ensaioId = `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`;
-                          return (
-                            <tr key={ensaioId} className="border-b border-border hover:bg-muted/30">
-                              <td className="px-4 py-2">
-                                <Checkbox 
-                                  checked={ensaiosParaSelecionar.includes(ensaioId)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setEnsaiosParaSelecionar(prev => [...prev, ensaioId])
-                                    } else {
-                                      setEnsaiosParaSelecionar(prev => prev.filter(id => id !== ensaioId))
-                                    }
-                                  }}
-                                />
-                              </td>
-                              <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
-                              <td className="px-4 py-2">{new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                              <td className="px-4 py-2">{ensaio.horario || '—'}</td>
-                              <td className="px-4 py-2">{ensaio.local || '—'}</td>
-                              <td className="px-4 py-2">{ensaio.anciao ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao) : '—'}</td>
-                              <td className="px-4 py-2">{ensaio.encarregadoRegional ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional) : '—'}</td>
-                            </tr>
-                          );
-                        })}
+                        {ensaios.map((ensaio) => (
+                          <tr key={ensaio.id} className="border-b border-border hover:bg-muted/30">
+                            <td className="px-4 py-2">
+                              <Checkbox 
+                                checked={ensaiosParaSelecionar.includes(ensaio.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setEnsaiosParaSelecionar(prev => [...prev, ensaio.id])
+                                  } else {
+                                    setEnsaiosParaSelecionar(prev => prev.filter(id => id !== ensaio.id))
+                                  }
+                                }}
+                              />
+                            </td>
+                            <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
+                            <td className="px-4 py-2">{ensaio.nivel}</td>
+                            <td className="px-4 py-2">{ensaio.local || '—'}</td>
+                            <td className="px-4 py-2">{ensaio.anciao ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao) : '—'}</td>
+                            <td className="px-4 py-2">{ensaio.encarregadoRegional ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional) : '—'}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length === 0 && (
-              <div className="glass-card rounded-xl p-12 text-center border-2 border-dashed border-border">
-                <p className="text-muted-foreground">Nenhum ensaio regional agendado para este período.</p>
               </div>
             )}
           </div>
@@ -1618,7 +1592,7 @@ export default function Listas() {
                     )}
 
                     {/* ENSAIOS REGIONAIS AGENDADOS */}
-                    {ensaiosParaSelecionar.length > 0 && getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
+                    {ensaiosParaSelecionar.length > 0 && ensaios.length > 0 && (
                       <div className="lista-section space-y-1">
                         <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                           <h5 className="font-bold text-sm text-gray-900 uppercase">ENSAIOS REGIONAIS</h5>
@@ -1627,29 +1601,21 @@ export default function Listas() {
                         <table className="w-full border-collapse">
                           <thead>
                             <tr className="bg-gray-300 border border-gray-900">
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENSAIO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCAL</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENC. REGIONAL</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).filter((_, idx) => 
-                              ensaiosParaSelecionar.includes(`ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`)
+                            {ensaios.filter((ensaio) => 
+                              ensaiosParaSelecionar.includes(ensaio.id)
                             ).map((ensaio, idx) => {
-                              const dataObj = new Date(ensaio.data + 'T12:00:00');
-                              const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-                              const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                              const diaSemana = diasSemanaAbr[dataObj.getDay()];
                               const nomeAnciao = ensaio.anciao ? membros.find(m => m.id === ensaio.anciao)?.nome || '-' : '-';
                               const nomeEncarregado = ensaio.encarregadoRegional ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-' : '-';
                               
                               return (
                                 <tr key={idx} className="border border-gray-900 bg-white">
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{ensaio.horario}</td>
                                   <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.titulo}</td>
                                   <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.local}</td>
                                   <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{reduzirNome(nomeAnciao)}</td>
