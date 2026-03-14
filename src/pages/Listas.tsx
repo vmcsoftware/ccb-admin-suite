@@ -80,6 +80,9 @@ export default function Listas() {
     fontSize: 'normal' as 'pequeno' | 'normal' | 'grande',
     bold: false,
     sortBy: 'data' as 'data' | 'congregacao' | 'localidade',
+    fontFamily: 'Calibri' as 'Calibri' | 'Arial' | 'Verdana' | 'Times New Roman',
+    lineHeight: 'normal' as 'compacto' | 'normal' | 'espaçoso',
+    borderColor: 'gray-900' as 'gray-900' | 'gray-700' | 'gray-600',
     eventOrder: ['Reuniões', 'Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'RJM com Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação', 'Reforços', 'RJM Reforços'] as string[],
   });
 
@@ -351,6 +354,24 @@ export default function Listas() {
 
   const getFontWeightClass = () => {
     return previewListasConfig.bold ? 'font-bold' : 'font-medium';
+  };
+
+  const getFontFamilyStyle = () => {
+    const families: { [key: string]: string } = {
+      'Calibri': "'Calibri', 'Arial', sans-serif",
+      'Arial': "'Arial', 'Helvetica', sans-serif",
+      'Verdana': "'Verdana', 'Geneva', sans-serif",
+      'Times New Roman': "'Times New Roman', 'Times', serif"
+    };
+    return families[previewListasConfig.fontFamily] || families['Calibri'];
+  };
+
+  const getLineHeightClass = () => {
+    switch (previewListasConfig.lineHeight) {
+      case 'compacto': return 'leading-tight';
+      case 'espaçoso': return 'leading-relaxed';
+      default: return 'leading-normal';
+    }
   };
 
   const getSortedEventTypes = (tipos: string[]) => {
@@ -1223,7 +1244,7 @@ export default function Listas() {
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
                 <div className="border-2 border-border rounded-lg overflow-hidden">
-                  <div className="bg-white p-3 space-y-2" ref={previewRefGerenciar} style={{ fontFamily: "'Calibri', 'Arial', 'Trebuchet MS', sans-serif" }}>
+                  <div className={`bg-white p-3 space-y-2 ${getLineHeightClass()}`} ref={previewRefGerenciar} style={{ fontFamily: getFontFamilyStyle() }}>
                     {/* CABEÇALHO */}
                     <div className="text-center space-y-0.5 pb-2 border-b-2 border-gray-800">
                       <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
@@ -1371,11 +1392,11 @@ export default function Listas() {
 
                 {/* DIALOG: CONFIGURAÇÃO DO PREVIEW */}
                 <Dialog open={configOpenListas} onOpenChange={setConfigOpenListas}>
-                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="max-w-7xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Configurar Visualização</DialogTitle>
                     </DialogHeader>
-                    <div className="grid grid-cols-2 gap-6 pr-4">
+                    <div className="grid grid-cols-3 gap-6 pr-4">
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="sort-by">Ordenação</Label>
@@ -1426,6 +1447,51 @@ export default function Listas() {
                             onCheckedChange={(checked) => setPreviewListasConfig({...previewListasConfig, bold: checked as boolean})}
                           />
                           <Label htmlFor="bold-text" className="cursor-pointer">Negrito</Label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="font-family">Tipo de Fonte</Label>
+                          <Select value={previewListasConfig.fontFamily} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, fontFamily: value as 'Calibri' | 'Arial' | 'Verdana' | 'Times New Roman'})}>
+                            <SelectTrigger id="font-family">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Calibri">Calibri</SelectItem>
+                              <SelectItem value="Arial">Arial</SelectItem>
+                              <SelectItem value="Verdana">Verdana</SelectItem>
+                              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="line-height">Espaçamento de Linhas Internas</Label>
+                          <Select value={previewListasConfig.lineHeight} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, lineHeight: value as 'compacto' | 'normal' | 'espaçoso'})}>
+                            <SelectTrigger id="line-height">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="compacto">Compacto</SelectItem>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="espaçoso">Espaçoso</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="border-color">Cor das Bordas</Label>
+                          <Select value={previewListasConfig.borderColor} onValueChange={(value) => setPreviewListasConfig({...previewListasConfig, borderColor: value as 'gray-900' | 'gray-700' | 'gray-600'})}>
+                            <SelectTrigger id="border-color">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gray-900">Escuro</SelectItem>
+                              <SelectItem value="gray-700">Médio</SelectItem>
+                              <SelectItem value="gray-600">Claro</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
