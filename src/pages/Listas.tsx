@@ -1245,7 +1245,7 @@ export default function Listas() {
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-foreground uppercase">Ensaios Regionais Salvos</h4>
+                  <h4 className="font-semibold text-sm text-foreground uppercase">Ensaios Regionais</h4>
                   <div className="glass-card rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
@@ -1268,7 +1268,6 @@ export default function Listas() {
                           <th className="px-4 py-2 text-left">Data</th>
                           <th className="px-4 py-2 text-left">Horário</th>
                           <th className="px-4 py-2 text-left">Congregação</th>
-                          <th className="px-4 py-2 text-left">Local</th>
                           <th className="px-4 py-2 text-left">Ancião</th>
                           <th className="px-4 py-2 text-left">Encarregado Regional</th>
                         </tr>
@@ -1304,7 +1303,6 @@ export default function Listas() {
                               <td className="px-4 py-2">{ensaio.data ? new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                               <td className="px-4 py-2">{ensaio.horario || '—'}</td>
                               <td className="px-4 py-2">{ensaio.congregacaoId ? getCongregacaoNome(ensaio.congregacaoId) : '—'}</td>
-                              <td className="px-4 py-2">{ensaio.local || '—'}</td>
                               <td className="px-4 py-2 text-xs">{nomeAnciao}</td>
                               <td className="px-4 py-2 text-xs">{nomeEncarregado}</td>
                             </tr>
