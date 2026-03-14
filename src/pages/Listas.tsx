@@ -749,6 +749,21 @@ export default function Listas() {
 
   const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos || ensaiosParaSelecionar.length > 0;
 
+  const importarTodos = () => {
+    // Importar todos os eventos
+    const todosEventos = eventosReuniao.map(e => e.id);
+    setEventosParaSelecionar(todosEventos);
+
+    // Importar todos os reforços
+    const todosReforcos = reforcosSalvos.map(r => r.id);
+    setReforcoParaSelecionar(todosReforcos);
+
+    // Importar todos os ensaios
+    const ensaiosAgendados = getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear());
+    const todosEnsaios = ensaiosAgendados.map((_, idx) => `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`);
+    setEnsaiosParaSelecionar(todosEnsaios);
+  };
+
   // TELA: FORMULÁRIO NOVA LISTA
   if (tela === 'formulario') {
     return (
@@ -912,6 +927,9 @@ export default function Listas() {
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2">
               <Download className="h-4 w-4" /> Exportar
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={importarTodos}>
+              <Plus className="h-4 w-4" /> Importar Tudo
             </Button>
             <Button variant="outline" className="gap-2" onClick={salvarLista}>
               <RefreshCw className="h-4 w-4" /> Atualizar
