@@ -105,6 +105,8 @@ export interface Ensaio {
   titulo: string;
   nivel: NivelEnsaio;
   local: string;
+  data?: string;
+  congregacaoId?: string;
   descricao?: string;
   anciao?: string;
   anciaoOutraLocalidade?: { nome: string; localidade: string };

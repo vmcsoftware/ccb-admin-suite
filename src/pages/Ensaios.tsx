@@ -44,6 +44,8 @@ const emptyForm: Omit<Ensaio, 'id'> = {
   titulo: '',
   nivel: 'Local',
   local: '',
+  data: '',
+  congregacaoId: '',
   descricao: '',
   anciao: '',
   encarregadoRegional: '',
@@ -197,6 +199,37 @@ export default function Ensaios() {
                     placeholder="Ex: Congregação Ituiutaba"
                     required
                   />
+                </div>
+
+                <div>
+                  <Label>Data (Opcional)</Label>
+                  <Input
+                    type="date"
+                    value={form.data || ''}
+                    onChange={(e) => setForm({ ...form, data: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label>Congregação (Opcional)</Label>
+                  <Select
+                    value={form.congregacaoId || 'none'}
+                    onValueChange={(value) =>
+                      setForm({ ...form, congregacaoId: value === 'none' ? '' : value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma congregação" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma selecionada</SelectItem>
+                      {congregacoes.map((cong) => (
+                        <SelectItem key={cong.id} value={cong.id}>
+                          {cong.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>

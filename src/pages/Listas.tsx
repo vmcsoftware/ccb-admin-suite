@@ -1265,6 +1265,8 @@ export default function Listas() {
                               }}
                             />
                           </th>
+                          <th className="px-4 py-2 text-left">Data</th>
+                          <th className="px-4 py-2 text-left">Congregação</th>
                           <th className="px-4 py-2 text-left">Título</th>
                           <th className="px-4 py-2 text-left">Nível</th>
                           <th className="px-4 py-2 text-left">Local</th>
@@ -1300,6 +1302,8 @@ export default function Listas() {
                                   }}
                                 />
                               </td>
+                              <td className="px-4 py-2">{ensaio.data ? new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+                              <td className="px-4 py-2">{ensaio.congregacaoId ? getCongregacaoNome(ensaio.congregacaoId) : '—'}</td>
                               <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
                               <td className="px-4 py-2">{ensaio.nivel}</td>
                               <td className="px-4 py-2">{ensaio.local || '—'}</td>
