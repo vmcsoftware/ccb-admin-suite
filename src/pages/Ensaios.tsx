@@ -202,15 +202,16 @@ export default function Ensaios() {
                 <div>
                   <Label>Ancião</Label>
                   <Select
-                    value={form.anciao || ''}
+                    value={form.anciao || 'none'}
                     onValueChange={(value) =>
-                      setForm({ ...form, anciao: value })
+                      setForm({ ...form, anciao: value === 'none' ? '' : value })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um ancião" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhum selecionado</SelectItem>
                       {membros.map((membro) => (
                         <SelectItem key={membro.id} value={membro.id}>
                           {membro.nome}
@@ -223,15 +224,16 @@ export default function Ensaios() {
                 <div>
                   <Label>Encarregado Regional</Label>
                   <Select
-                    value={form.encarregadoRegional || ''}
+                    value={form.encarregadoRegional || 'none'}
                     onValueChange={(value) =>
-                      setForm({ ...form, encarregadoRegional: value })
+                      setForm({ ...form, encarregadoRegional: value === 'none' ? '' : value })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um encarregado" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhum selecionado</SelectItem>
                       {membros.map((membro) => (
                         <SelectItem key={membro.id} value={membro.id}>
                           {membro.nome}
