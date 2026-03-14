@@ -438,7 +438,7 @@ export default function Listas() {
       });
       
       // Usar JPEG para melhor compressão e qualidade
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -447,7 +447,7 @@ export default function Listas() {
       
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margins = 6; // Reduzir margens para otimizar espaço
+      const margins = 4; // Margens reduzidas para economizar papel
       const imgWidth = pageWidth - (margins * 2);
       const yPosition = margins;
       
@@ -1223,23 +1223,23 @@ export default function Listas() {
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
                 <div className="border-2 border-border rounded-lg overflow-hidden">
-                  <div className="bg-white p-8 space-y-6" ref={previewRefGerenciar} style={{ fontFamily: "'Calibri', 'Arial', 'Trebuchet MS', sans-serif" }}>
+                  <div className="bg-white p-3 space-y-2" ref={previewRefGerenciar} style={{ fontFamily: "'Calibri', 'Arial', 'Trebuchet MS', sans-serif" }}>
                     {/* CABEÇALHO */}
-                    <div className="text-center space-y-1 pb-4 border-b-2 border-gray-800">
+                    <div className="text-center space-y-0.5 pb-2 border-b-2 border-gray-800">
                       <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
                       <div className="text-xs font-semibold tracking-wider">REGIONAL UBERLÂNDIA - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
                       <div className="text-xs font-semibold tracking-wider">ADMINISTRAÇÃO DE ITUIUTABA</div>
-                      <div className="text-sm font-bold mt-3">{listaEditando?.nome || 'LISTA'}</div>
+                      <div className="text-sm font-bold mt-1.5">{listaEditando?.nome || 'LISTA'}</div>
                     </div>
 
                     {/* EVENTOS SELECIONADOS */}
                     {eventosParaSelecionar.length > 0 && (
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {getSortedEventTypes([...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))]).map(tipo => {
                           const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
                           return (
-                            <div key={tipo} className="space-y-2">
-                              <div className="flex items-center justify-between pb-2 border-b border-gray-900">
+                            <div key={tipo} className="space-y-1">
+                              <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
@@ -1285,12 +1285,12 @@ export default function Listas() {
 
                     {/* REFORÇOS SELECIONADOS */}
                     {reforcoParaSelecionar.length > 0 && (
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {getSortedEventTypes([...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))]).map(tipo => {
                           const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
                           return (
-                            <div key={tipo} className="space-y-2">
-                              <div className="flex items-center justify-between pb-2 border-b border-gray-900">
+                            <div key={tipo} className="space-y-1">
+                              <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                               </div>
@@ -1343,8 +1343,8 @@ export default function Listas() {
 
                     {/* RODAPÉ: AVISOS */}
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-2 border-b border-gray-900">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                           <h5 className={`font-bold ${getFontSizeClass()} text-gray-900 uppercase`}>AVISOS</h5>
                           <input type="checkbox" className="w-4 h-4 cursor-pointer" />
                         </div>
