@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
-import { useResultadosBatismo, useResultadosSantaCeia, useResultadosEnsaioRegional, useCongregacoes } from '@/hooks/useData';
+import { Plus, Trash2, Edit2, Download } from 'lucide-react';
+import { useResultadosBatismo, useResultadosSantaCeia, useResultadosEnsaioRegional, useCongregacoes, useEventos, useEnsaios } from '@/hooks/useData';
 import { ResultadoBatismo, ResultadoSantaCeia, ResultadoEnsaioRegional } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,6 +137,71 @@ export default function Resultados() {
     });
   };
 
+  // Hooks para importação de eventos
+  const { eventosComTipo: eventosCom } = useEventos();
+  const { ensaiosSalvos, ensaiosSalvosComTipo } = useEnsaios();
+
+  // Estados para diálogos de importação
+  const [openImportarBatismo, setOpenImportarBatismo] = useState(false);
+  const [openImportarSantaCeia, setOpenImportarSantaCeia] = useState(false);
+  const [openImportarEnsaio, setOpenImportarEnsaio] = useState(false);
+
+  // Função para filtrar eventos por tipo
+  const eventosComTipo = (tipo: 'Batismo' | 'Santa Ceia') => {
+    const eventos = eventosCom?.() || [];
+    return eventos.filter((e: any) => e.tipo === tipo);
+  };
+
+  // Handlers para importação
+  const importarBatismo = (eventId: string) => {
+    const evento = eventosComTipo('Batismo').find((e: any) => e.id === eventId);
+    if (evento) {
+      setFormBatismo({
+        data: evento.data || '',
+        congregacaoId: evento.congregacaoId || '',
+        irmaos: 0,
+        irmas: 0,
+        observacoes: '',
+      });
+      setOpenImportarBatismo(false);
+      setOpenBatismo(true);
+    }
+  };
+
+  const importarSantaCeia = (eventId: string) => {
+    const evento = eventosComTipo('Santa Ceia').find((e: any) => e.id === eventId);
+    if (evento) {
+      setFormSantaCeia({
+        data: evento.data || '',
+        congregacaoId: evento.congregacaoId || '',
+        irmaos: 0,
+        irmas: 0,
+        observacoes: '',
+      });
+      setOpenImportarSantaCeia(false);
+      setOpenSantaCeia(true);
+    }
+  };
+
+  const importarEnsaio = (ensaioId: string) => {
+    const ensaio = ensaiosSalvos?.find((e: any) => e.id === ensaioId);
+    if (ensaio) {
+      setFormEnsaio({
+        data: ensaio.data || '',
+        titulo: ensaio.titulo || '',
+        local: ensaio.local || '',
+        musicos: ensaio.musicos?.map((m: any) => ({
+          ...m,
+          localidade: m.localidade || '',
+        })) || [],
+        organistas: 0,
+        observacoes: '',
+      });
+      setOpenImportarEnsaio(false);
+      setOpenEnsaio(true);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -155,19 +220,48 @@ export default function Resultados() {
         <TabsContent value="batismo" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Resultados de Batismo</h2>
-            <Dialog open={openBatismo} onOpenChange={setOpenBatismo}>
-              <DialogTrigger asChild>
-                <Button
-                  className="gap-2"
-                  onClick={() => {
-                    setFormBatismo({ data: '', congregacaoId: '', irmaos: 0, irmas: 0, observacoes: '' });
-                    setEditingBatismo(null);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Novo Resultado
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Dialog open={openImportarBatismo} onOpenChange={setOpenImportarBatismo}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Importar Evento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[60vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Importar Batismo</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    {eventosComTipo('Batismo').map((evento: any) => (
+                      <button
+                        key={evento.id}
+                        onClick={() => importarBatismo(evento.id)}
+                        className="w-full p-4 text-left border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="font-semibold">{getCongregacaoNome(evento.congregacaoId)}</div>
+                        <div className="text-sm text-gray-500">{new Date(evento.data).toLocaleDateString('pt-BR')}</div>
+                      </button>
+                    ))}
+                    {eventosComTipo('Batismo').length === 0 && (
+                      <div className="text-center text-gray-500 py-4">Nenhum batismo salvo</div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={openBatismo} onOpenChange={setOpenBatismo}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="gap-2"
+                    onClick={() => {
+                      setFormBatismo({ data: '', congregacaoId: '', irmaos: 0, irmas: 0, observacoes: '' });
+                      setEditingBatismo(null);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Resultado
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingBatismo ? 'Editar Batismo' : 'Novo Batismo'}</DialogTitle>
@@ -208,6 +302,7 @@ export default function Resultados() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <div className="grid gap-4">
@@ -263,19 +358,48 @@ export default function Resultados() {
         <TabsContent value="santaceia" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Resultados de Santa Ceia</h2>
-            <Dialog open={openSantaCeia} onOpenChange={setOpenSantaCeia}>
-              <DialogTrigger asChild>
-                <Button
-                  className="gap-2"
-                  onClick={() => {
-                    setFormSantaCeia({ data: '', congregacaoId: '', irmaos: 0, irmas: 0, observacoes: '' });
-                    setEditingSantaCeia(null);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Novo Resultado
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Dialog open={openImportarSantaCeia} onOpenChange={setOpenImportarSantaCeia}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Importar Evento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[60vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Importar Santa Ceia</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    {eventosComTipo('Santa Ceia').map((evento: any) => (
+                      <button
+                        key={evento.id}
+                        onClick={() => importarSantaCeia(evento.id)}
+                        className="w-full p-4 text-left border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="font-semibold">{getCongregacaoNome(evento.congregacaoId)}</div>
+                        <div className="text-sm text-gray-500">{new Date(evento.data).toLocaleDateString('pt-BR')}</div>
+                      </button>
+                    ))}
+                    {eventosComTipo('Santa Ceia').length === 0 && (
+                      <div className="text-center text-gray-500 py-4">Nenhuma Santa Ceia salva</div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={openSantaCeia} onOpenChange={setOpenSantaCeia}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="gap-2"
+                    onClick={() => {
+                      setFormSantaCeia({ data: '', congregacaoId: '', irmaos: 0, irmas: 0, observacoes: '' });
+                      setEditingSantaCeia(null);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Resultado
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{editingSantaCeia ? 'Editar Santa Ceia' : 'Nova Santa Ceia'}</DialogTitle>
@@ -316,6 +440,7 @@ export default function Resultados() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <div className="grid gap-4">
@@ -371,20 +496,50 @@ export default function Resultados() {
         <TabsContent value="ensaio" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Resultados de Ensaios Regionais</h2>
-            <Dialog open={openEnsaio} onOpenChange={setOpenEnsaio}>
-              <DialogTrigger asChild>
-                <Button
-                  className="gap-2"
-                  onClick={() => {
-                    setFormEnsaio({ data: '', titulo: '', local: '', musicos: [], organistas: 0, observacoes: '' });
-                    setEditingEnsaio(null);
-                    setNovoMusico({ nome: '', instrumento: '', localidade: '' });
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Novo Resultado
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Dialog open={openImportarEnsaio} onOpenChange={setOpenImportarEnsaio}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Importar Evento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[60vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Importar Ensaio Regional</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    {ensaiosSalvos?.map((ensaio: any) => (
+                      <button
+                        key={ensaio.id}
+                        onClick={() => importarEnsaio(ensaio.id)}
+                        className="w-full p-4 text-left border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="font-semibold">{ensaio.titulo}</div>
+                        <div className="text-sm text-gray-600">Local: {ensaio.local}</div>
+                        <div className="text-sm text-gray-500">{new Date(ensaio.data).toLocaleDateString('pt-BR')}</div>
+                      </button>
+                    ))}
+                    {!ensaiosSalvos || ensaiosSalvos.length === 0 && (
+                      <div className="text-center text-gray-500 py-4">Nenhum ensaio salvo</div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={openEnsaio} onOpenChange={setOpenEnsaio}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="gap-2"
+                    onClick={() => {
+                      setFormEnsaio({ data: '', titulo: '', local: '', musicos: [], organistas: 0, observacoes: '' });
+                      setEditingEnsaio(null);
+                      setNovoMusico({ nome: '', instrumento: '', localidade: '' });
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Resultado
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingEnsaio ? 'Editar Ensaio' : 'Novo Ensaio Regional'}</DialogTitle>
@@ -453,6 +608,7 @@ export default function Resultados() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <div className="grid gap-4">
