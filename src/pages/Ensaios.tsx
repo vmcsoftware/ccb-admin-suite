@@ -45,6 +45,7 @@ const emptyForm: Omit<Ensaio, 'id'> = {
   nivel: 'Local',
   local: '',
   data: '',
+  horario: '',
   congregacaoId: '',
   descricao: '',
   anciao: '',
@@ -207,6 +208,15 @@ export default function Ensaios() {
                     type="date"
                     value={form.data || ''}
                     onChange={(e) => setForm({ ...form, data: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label>Horário (Opcional)</Label>
+                  <Input
+                    type="time"
+                    value={form.horario || ''}
+                    onChange={(e) => setForm({ ...form, horario: e.target.value })}
                   />
                 </div>
 
