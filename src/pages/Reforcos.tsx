@@ -220,12 +220,10 @@ export default function Reforcos() {
     ? reforcos 
     : reforcos.filter(r => r.tipo === filterTipo);
 
-  // Filtrar apenas reforços com data futura ou de hoje
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Filtrar apenas reforços com data futura ou de hoje (excluir os já realizados)
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const reforçosAtivos = reforcosFiltrados.filter(r => {
-    const reforcoDate = new Date(r.data + 'T00:00:00');
-    return reforcoDate >= today;
+    return r.data >= today; // Comparação de strings funciona com formato ISO
   });
 
   // Ordenar reforços por data e depois por congregação
