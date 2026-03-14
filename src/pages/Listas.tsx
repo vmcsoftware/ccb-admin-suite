@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FileText, Download, Settings, Eye, Edit2, Trash2, ArrowLeft, RefreshCw, Plus } from 'lucide-react';
-import { useCongregacoes, useMembros, useReforcos, useEventos } from '@/hooks/useData';
+import { useCongregacoes, useMembros, useReforcos, useEventos, useListas } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -8,55 +8,21 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Lista, Categoria, Aviso, ConfiguracaoEstilo } from '@/types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-interface Categoria {
-  id: string;
-  nome: string;
-}
-
-interface Aviso {
-  id: string;
-  titulo: string;
-  assunto: string;
-  mostrarNoPreview?: boolean;
-}
-
-interface ConfiguracaoEstilo {
-  tamanhoFonte: 'pequeno' | 'normal' | 'grande';
-  alturaLinha: 'compacto' | 'normal' | 'espaçoso';
-  espaçamentoParagrafo: 'minimo' | 'normal' | 'generoso';
-  negrito: boolean;
-}
-
-interface Lista {
-  id: string;
-  nome: string;
-  mes: number;
-  ano: number;
-  ativa: boolean;
-  data: string;
-  dataInicio?: string;
-  dataFim?: string;
-  categorias: Categoria[];
-  avisos?: Aviso[];
-  eventosSelected?: string[];
-  reforcosSelecionados?: string[];
-  ordenacaoEventos?: { [tipo: string]: number };
-  estiloConfig?: ConfiguracaoEstilo;
-}
+import * as XLSX from 'xlsx';
 
 export default function Listas() {
   const { congregacoes } = useCongregacoes();
   const { membros } = useMembros();
   const { reforcos } = useReforcos();
   const { eventos } = useEventos();
+  const { listas: listasFirebase, adicionar, remover, atualizar } = useListas();
   const previewRefGerenciar = useRef<HTMLDivElement>(null);
   const previewRefEditor = useRef<HTMLDivElement>(null);
 
   const [tela, setTela] = useState<'inicial' | 'formulario' | 'editor' | 'gerenciar'>('inicial');
-  const [listas, setListas] = useState<Lista[]>([]);
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
   const [listaEditando, setListaEditando] = useState<Lista | null>(null);
   const [categoriasFiltro, setCategoriasFiltro] = useState('todas');
@@ -117,19 +83,7 @@ export default function Listas() {
     eventOrder: ['Reuniões', 'Batismo', 'Santa-Ceia', 'Reunião para Mocidade', 'Busca dos Dons', 'RJM com Busca dos Dons', 'Reunião Setorial', 'Reunião Ministerial', 'Reunião Extra', 'Culto para Jovens', 'Ensaio Regional', 'Ordenação', 'Reforços', 'RJM Reforços'] as string[],
   });
 
-  // Carregar listas do localStorage
-  useEffect(() => {
-    const listasArmazenadas = localStorage.getItem('listas-ccb');
-    if (listasArmazenadas) {
-      try {
-        setListas(JSON.parse(listasArmazenadas));
-      } catch (e) {
-        console.error('Erro ao carregar listas:', e);
-      }
-    }
-  }, []);
-
-  // Sincronizar estilos quando lista é selecionada
+  // Sincronizar estilos e ordem dos eventos quando lista é selecionada
   useEffect(() => {
     if (listaEditando?.estiloConfig) {
       setEstiloConfig(listaEditando.estiloConfig);
@@ -137,12 +91,10 @@ export default function Listas() {
     if (listaEditando?.ordenacaoEventos) {
       setOrdenacaoEventos(listaEditando.ordenacaoEventos);
     }
-  }, [listaEditando?.id, listaEditando?.estiloConfig, listaEditando?.ordenacaoEventos]);
-
-  // Salvar listas no localStorage
-  useEffect(() => {
-    localStorage.setItem('listas-ccb', JSON.stringify(listas));
-  }, [listas]);
+    if (listaEditando?.eventOrder) {
+      setPreviewListasConfig(prev => ({ ...prev, eventOrder: listaEditando.eventOrder }));
+    }
+  }, [listaEditando?.id, listaEditando?.estiloConfig, listaEditando?.ordenacaoEventos, listaEditando?.eventOrder]);
 
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -158,7 +110,7 @@ export default function Listas() {
     setTela('formulario');
   };
 
-  const salvarFormularioLista = () => {
+  const salvarFormularioLista = async () => {
     if (!formLista.nome.trim()) {
       alert('Nome da lista é obrigatório!');
       return;
@@ -167,8 +119,7 @@ export default function Listas() {
       alert('Data de início não pode ser posterior à data de fim!');
       return;
     }
-    const novaListaObj: Lista = {
-      id: Date.now().toString(),
+    const novaListaObj: Omit<Lista, 'id'> = {
       nome: formLista.nome.trim(),
       mes: formLista.mes,
       ano: formLista.ano,
@@ -181,18 +132,24 @@ export default function Listas() {
       eventosSelected: [],
       reforcosSelecionados: [],
     };
-    setListaEditando(novaListaObj);
-    setEventosParaSelecionar([]);
-    setReforcoParaSelecionar([]);
-    setFiltroTipoReuniaoAtivo(null);
-    setTela('gerenciar');
-    setCategoriasFiltro('todas');
-    setNovaCategoriaNome('');
-    setAbaGerenciar('reunioes');
-    setFiltroSetorGerenciar('todos');
-    setFiltroCategoriasGerenciar('todas');
-    setIsNewList(true);
-    resetFormulario();
+    try {
+      await adicionar(novaListaObj);
+      setListaEditando({ id: 'temp', ...novaListaObj });
+      setEventosParaSelecionar([]);
+      setReforcoParaSelecionar([]);
+      setFiltroTipoReuniaoAtivo(null);
+      setTela('gerenciar');
+      setCategoriasFiltro('todas');
+      setNovaCategoriaNome('');
+      setAbaGerenciar('reunioes');
+      setFiltroSetorGerenciar('todos');
+      setFiltroCategoriasGerenciar('todas');
+      setIsNewList(true);
+      resetFormulario();
+    } catch (error) {
+      console.error('Erro ao criar lista:', error);
+      alert('Erro ao criar lista. Tente novamente.');
+    }
   };
 
   const editarLista = (lista: Lista) => {
@@ -207,33 +164,46 @@ export default function Listas() {
     setTela('gerenciar');
   };
 
-  const deletarLista = (id: string) => {
-    setListas((prev) => prev.filter((l) => l.id !== id));
+  const deletarLista = async (id: string) => {
+    try {
+      await remover(id);
+    } catch (error) {
+      console.error('Erro ao deletar lista:', error);
+      alert('Erro ao deletar lista. Tente novamente.');
+    }
   };
 
-  const salvarLista = () => {
+  const salvarLista = async () => {
     if (!listaEditando) return;
     const listaFinal = {
       ...listaEditando,
       eventosSelected: eventosParaSelecionar,
       reforcosSelecionados: reforcoParaSelecionar,
       avisos: listaEditando.avisos || [],
+      eventOrder: previewListasConfig.eventOrder,
     };
-    if (listas.find((l) => l.id === listaEditando.id)) {
-      setListas((prev) => prev.map((l) => (l.id === listaEditando.id ? listaFinal : l)));
-    } else {
-      setListas((prev) => [...prev, listaFinal]);
+    try {
+      // Se a lista tem um ID válido do Firebase, atualiza; caso contrário, adiciona
+      if (listaEditando.id && !listaEditando.id.startsWith('temp')) {
+        await atualizar(listaEditando.id, listaFinal);
+      } else {
+        const { id, ...listaParaAdicionar } = listaFinal;
+        await adicionar(listaParaAdicionar);
+      }
+      setTela('inicial');
+      setListaEditando(null);
+      setEventosParaSelecionar([]);
+      setReforcoParaSelecionar([]);
+      setCategoriasFiltro('todas');
+      setNovaCategoriaNome('');
+      setAbaGerenciar('reunioes');
+      setFiltroSetorGerenciar('todos');
+      setFiltroCategoriasGerenciar('todas');
+      setIsNewList(false);
+    } catch (error) {
+      console.error('Erro ao salvar lista:', error);
+      alert('Erro ao salvar lista. Tente novamente.');
     }
-    setTela('inicial');
-    setListaEditando(null);
-    setEventosParaSelecionar([]);
-    setReforcoParaSelecionar([]);
-    setCategoriasFiltro('todas');
-    setNovaCategoriaNome('');
-    setAbaGerenciar('reunioes');
-    setFiltroSetorGerenciar('todos');
-    setFiltroCategoriasGerenciar('todas');
-    setIsNewList(false);
   };
 
   const adicionarCategoria = () => {
@@ -298,7 +268,7 @@ export default function Listas() {
     );
   };
 
-  const listasFiltradas = listas.filter((l) => l.ano === anoFiltro).sort((a, b) => a.mes - b.mes);
+  const listasFiltradas = listasFirebase.filter((l) => l.ano === anoFiltro).sort((a, b) => a.mes - b.mes);
 
   const resetFormulario = () => {
     setSelectedCongs([]);
@@ -395,6 +365,13 @@ export default function Listas() {
 
   const reduzirNome = (nome: string) => {
     if (!nome) return '';
+    
+    // Exceção especial: João Pereira de Oliveira Neto
+    if (nome.toUpperCase().includes('JOÃO PEREIRA DE OLIVEIRA NETO') || 
+        nome.toUpperCase().includes('JOÃO PEREIRA DE OLIVEIRA') && nome.toUpperCase().includes('NETO')) {
+      return 'João de Oliveira';
+    }
+    
     const partes = nome.trim().split(/\s+/);
     if (partes.length <= 1) return nome;
     
@@ -410,8 +387,15 @@ export default function Listas() {
       }
     }
     
-    // Se há preposição e há palavra após ela
-    if (indexPreposicao !== -1 && indexPreposicao < partes.length - 1) {
+    // Se há preposição no índice 2 ou maior (preposição após pelo menos 2 nomes)
+    // Retorna os dois primeiros nomes: "João Neves" em "João Neves da Silva"
+    if (indexPreposicao >= 2) {
+      return `${partes[0]} ${partes[1]}`;
+    }
+    
+    // Se há preposição no índice 1 e há palavra após ela
+    // Retorna primeiro + preposição + próximo: "João de Silva"
+    if (indexPreposicao === 1 && indexPreposicao < partes.length - 1) {
       return `${partes[0]} ${partes[indexPreposicao]} ${partes[indexPreposicao + 1]}`;
     }
     
@@ -516,6 +500,84 @@ export default function Listas() {
       pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
+    }
+  };
+
+  const gerarXLS = () => {
+    try {
+      const activeRef = tela === 'gerenciar' ? previewRefGerenciar : previewRefEditor;
+      if (!activeRef.current) return;
+
+      const element = activeRef.current;
+      const tables = element.querySelectorAll('table');
+      
+      if (tables.length === 0) {
+        alert('Nenhuma tabela encontrada para exportar.');
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+      
+      // Extrair todas as tabelas
+      tables.forEach((table, index) => {
+        // Obter nome da tabela a partir do header anterior
+        let tableName = `Tabela ${index + 1}`;
+        const previousElement = table.previousElementSibling;
+        if (previousElement && previousElement.textContent) {
+          tableName = previousElement.textContent.trim();
+        }
+        
+        // Extrair dados da tabela manualmente para melhor compatibilidade
+        const rows: string[][] = [];
+        const tableRows = table.querySelectorAll('tr');
+        
+        tableRows.forEach((row) => {
+          const cells = row.querySelectorAll('td, th');
+          const rowData: string[] = [];
+          cells.forEach((cell) => {
+            rowData.push(cell.textContent?.trim() || '');
+          });
+          if (rowData.length > 0) {
+            rows.push(rowData);
+          }
+        });
+        
+        if (rows.length === 0) return;
+        
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        
+        // Ajustar largura das colunas
+        const maxWidth = Math.max(...rows.map(row => row.length)) || 1;
+        const colWidths = Array(maxWidth).fill(18);
+        worksheet['!cols'] = colWidths.map(width => ({ wch: width }));
+        
+        // Rotular a aba (Excel tem limite de 31 caracteres)
+        const sheetName = tableName.substring(0, 31);
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      });
+
+      // Criar aba dodapé com data e localização
+      const agora = new Date();
+      const dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+      const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+      
+      const dia = agora.getDate();
+      const mes = meses[agora.getMonth()];
+      const ano = agora.getFullYear();
+      const horas = String(agora.getHours()).padStart(2, '0');
+      const minutos = String(agora.getMinutes()).padStart(2, '0');
+      
+      const rodapeTexto = `Ituiutaba-MG, ${dia} de ${mes} de ${ano} - ${horas}:${minutos}`;
+      
+      const rodapeSheet = XLSX.utils.aoa_to_sheet([[rodapeTexto]]);
+      rodapeSheet['!cols'] = [{ wch: 50 }];
+      XLSX.utils.book_append_sheet(workbook, rodapeSheet, 'Rodapé');
+
+      // Salvar arquivo
+      XLSX.writeFile(workbook, `lista-ccb-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (error) {
+      console.error('Erro ao gerar XLS:', error);
+      alert('Erro ao gerar arquivo XLS. Verifique se há dados para exportar.');
     }
   };
 
@@ -1133,7 +1195,7 @@ export default function Listas() {
             ) : (
               <>
                 {/* CONTROLES DE PREVIEW - NÃO SERÁ INCLUÍDO NO PDF */}
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <Button 
                     onClick={() => setConfigOpenListas(true)}
                     variant="outline"
@@ -1141,27 +1203,33 @@ export default function Listas() {
                   >
                     <Settings className="h-4 w-4" /> Configurar
                   </Button>
-                  <Button 
-                    onClick={gerarPDF} 
-                    disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  >
-                    <FileText className="h-4 w-4" /> Gerar PDF
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={gerarPDF} 
+                      disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    >
+                      <FileText className="h-4 w-4" /> Gerar PDF
+                    </Button>
+                    <Button 
+                      onClick={gerarXLS} 
+                      disabled={eventosParaSelecionar.length === 0 && reforcoParaSelecionar.length === 0}
+                      className="gap-2 bg-green-600 hover:bg-green-700"
+                    >
+                      <Download className="h-4 w-4" /> Gerar XLS
+                    </Button>
+                  </div>
                 </div>
 
                 {/* PREVIEW CONTENT - SERÁ INCLUÍDO NO PDF */}
                 <div className="border-2 border-border rounded-lg overflow-hidden">
-                  <div className="bg-white p-8 space-y-6" ref={previewRefGerenciar}>
+                  <div className="bg-white p-8 space-y-6" ref={previewRefGerenciar} style={{ fontFamily: "'Calibri', 'Arial', 'Trebuchet MS', sans-serif" }}>
                     {/* CABEÇALHO */}
                     <div className="text-center space-y-1 pb-4 border-b-2 border-gray-800">
                       <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
-                      <div className="text-xs font-semibold tracking-wider">{
-                        congregacoes[0]?.nome.toLowerCase().includes('central')
-                          ? `Administração|${congregacoes[0]?.cidade.toUpperCase()}`
-                          : congregacoes[0]?.nome.toUpperCase() || 'ADMINISTRAÇÃO'
-                      } - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
-                      <div className="text-sm font-bold mt-2">{listaEditando?.nome || 'LISTA'}</div>
+                      <div className="text-xs font-semibold tracking-wider">REGIONAL UBERLÂNDIA - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
+                      <div className="text-xs font-semibold tracking-wider">ADMINISTRAÇÃO DE ITUIUTABA</div>
+                      <div className="text-sm font-bold mt-3">{listaEditando?.nome || 'LISTA'}</div>
                     </div>
 
                     {/* EVENTOS SELECIONADOS */}
@@ -1792,13 +1860,16 @@ export default function Listas() {
             <Button onClick={gerarPDF} disabled={!hasSelection} className="gap-2">
               <Download className="h-4 w-4" /> Gerar PDF e Baixar
             </Button>
+            <Button onClick={gerarXLS} disabled={!hasSelection} className="gap-2 bg-green-600 hover:bg-green-700">
+              <Download className="h-4 w-4" /> Gerar XLS
+            </Button>
             <Button onClick={salvarLista} className="gap-2">
               <FileText className="h-4 w-4" /> Salvar Lista
             </Button>
           </div>
 
           {/* Preview Section */}
-          <div ref={previewRefEditor} className="glass-card rounded-xl p-8 space-y-6 bg-white">
+          <div ref={previewRefEditor} className="glass-card rounded-xl p-8 space-y-6 bg-white" style={{ fontFamily: "'Calibri', 'Arial', 'Trebuchet MS', sans-serif" }}>
           {/* Cabeçalho do Documento */}
           <div className="text-center space-y-2 pb-4 border-b-2 border-gray-800">
             <div className="text-sm font-semibold">CONGREGAÇÃO CRISTÃ</div>
@@ -1819,27 +1890,33 @@ export default function Listas() {
             {incluirEventos && getEventosFiltrados().length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">TODOS OS EVENTOS AGENDADOS</h4>
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 border border-gray-400">
-                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">TIPO</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
+                    <tr className="bg-gray-300 border border-gray-900">
+                      <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</td>
+                      <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</td>
+                      <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>TIPO</td>
+                      <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</td>
+                      <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</td>
                     </tr>
                   </thead>
                   <tbody>
                     {getEventosFiltrados()
-                      .map((e) => (
-                        <tr key={e.id} className="border border-gray-400">
-                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.subtipoReuniao || e.tipo || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
-                        </tr>
-                      ))}
+                      .map((e) => {
+                        const dataObj = new Date(e.data + 'T12:00:00');
+                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const diaSemana = diasSemana[dataObj.getDay()];
+                        return (
+                          <tr key={e.id} className="border border-gray-900 bg-white">
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{e.subtipoReuniao || e.tipo || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{reduzirNome(e.anciaoAtende || '—')}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1849,26 +1926,32 @@ export default function Listas() {
             {incluirEventos && getEventosFiltrados().filter(e => e.subtipoReuniao === 'Batismo').length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">BATISMO</h4>
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 border border-gray-400">
-                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">ANCIÃO</td>
+                    <tr className="bg-gray-300 border border-gray-900">
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
                     </tr>
                   </thead>
                   <tbody>
                     {getEventosFiltrados()
                       .filter(e => e.subtipoReuniao === 'Batismo')
-                      .map((e) => (
-                        <tr key={e.id} className="border border-gray-400">
-                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
-                        </tr>
-                      ))}
+                      .map((e) => {
+                        const dataObj = new Date(e.data + 'T12:00:00');
+                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const diaSemana = diasSemana[dataObj.getDay()];
+                        return (
+                          <tr key={e.id} className="border border-gray-900 bg-white">
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{reduzirNome(e.anciaoAtende || '—')}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1878,26 +1961,32 @@ export default function Listas() {
             {incluirEventos && getEventosFiltrados().filter(e => e.subtipoReuniao === 'Santa-Ceia').length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">SANTA-CEIA</h4>
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 border border-gray-400">
-                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">ANCIÃO</td>
+                    <tr className="bg-gray-300 border border-gray-900">
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
                     </tr>
                   </thead>
                   <tbody>
                     {getEventosFiltrados()
                       .filter(e => e.subtipoReuniao === 'Santa-Ceia')
-                      .map((e) => (
-                        <tr key={e.id} className="border border-gray-400">
-                          <td className="border border-gray-400 px-2 py-1">{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="border border-gray-400 px-2 py-1">{e.horario || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(e.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{reduzirNome(e.anciaoAtende || '—')}</td>
-                        </tr>
-                      ))}
+                      .map((e) => {
+                        const dataObj = new Date(e.data + 'T12:00:00');
+                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const diaSemana = diasSemana[dataObj.getDay()];
+                        return (
+                          <tr key={e.id} className="border border-gray-900 bg-white">
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{reduzirNome(e.anciaoAtende || '—')}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1907,26 +1996,32 @@ export default function Listas() {
             {incluirReforcos && getReforcosFiltrados().filter(r => r.tipo === 'Culto').length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">REFORÇO - CULTO OFICIAL</h4>
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 border border-gray-400">
-                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
+                    <tr className="bg-gray-300 border border-gray-900">
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
                     </tr>
                   </thead>
                   <tbody>
                     {getReforcosFiltrados()
                       .filter(r => r.tipo === 'Culto')
-                      .map((r) => (
-                        <tr key={r.id} className="border border-gray-400">
-                          <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
-                        </tr>
-                      ))}
+                      .map((r) => {
+                        const dataObj = new Date(r.data + 'T12:00:00');
+                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const diaSemana = diasSemana[dataObj.getDay()];
+                        return (
+                          <tr key={r.id} className="border border-gray-900 bg-white">
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1936,26 +2031,32 @@ export default function Listas() {
             {incluirReforcos && getReforcosFiltrados().filter(r => r.tipo === 'RJM').length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-bold text-sm text-center pb-2 border-b border-gray-400">REFORÇO - RJM</h4>
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gray-200 border border-gray-400">
-                      <td className="border border-gray-400 px-2 py-1 font-bold">DATA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">HORA</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">LOCALIDADE</td>
-                      <td className="border border-gray-400 px-2 py-1 font-bold">IRMÃO</td>
+                    <tr className="bg-gray-300 border border-gray-900">
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
+                      <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left ${getFontSizeClass()} text-gray-900 break-words`}>IRMÃO</th>
                     </tr>
                   </thead>
                   <tbody>
                     {getReforcosFiltrados()
                       .filter(r => r.tipo === 'RJM')
-                      .map((r) => (
-                        <tr key={r.id} className="border border-gray-400">
-                          <td className="border border-gray-400 px-2 py-1">{new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.horario || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{getCongregacaoNome(r.congregacaoId) || '—'}</td>
-                          <td className="border border-gray-400 px-2 py-1">{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
-                        </tr>
-                      ))}
+                      .map((r) => {
+                        const dataObj = new Date(r.data + 'T12:00:00');
+                        const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                        const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const diaSemana = diasSemana[dataObj.getDay()];
+                        return (
+                          <tr key={r.id} className="border border-gray-900 bg-white">
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '—'}</td>
+                            <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-gray-900 break-words`}>{r.membros.length > 0 ? r.membros.map((id) => reduzirNome(membros.find((m) => m.id === id)?.nome || '—')).join(', ') : '—'}</td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

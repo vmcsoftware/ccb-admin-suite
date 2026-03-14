@@ -159,3 +159,41 @@ export interface ConfiguracaoEstiloLista {
 export interface OrdenacaoEventos {
   [tipo: string]: number; // Nome do tipo => posição (número)
 }
+
+// Tipos para Listas
+export interface Categoria {
+  id: string;
+  nome: string;
+}
+
+export interface Aviso {
+  id: string;
+  titulo: string;
+  assunto: string;
+  mostrarNoPreview?: boolean;
+}
+
+export interface ConfiguracaoEstilo {
+  tamanhoFonte: 'pequeno' | 'normal' | 'grande';
+  alturaLinha: 'compacto' | 'normal' | 'espaçoso';
+  espaçamentoParagrafo: 'minimo' | 'normal' | 'generoso';
+  negrito: boolean;
+}
+
+export interface Lista {
+  id: string;
+  nome: string;
+  mes: number;
+  ano: number;
+  ativa: boolean;
+  data: string;
+  dataInicio?: string;
+  dataFim?: string;
+  categorias: Categoria[];
+  avisos?: Aviso[];
+  eventosSelected?: string[];
+  reforcosSelecionados?: string[];
+  ordenacaoEventos?: { [tipo: string]: number };
+  estiloConfig?: ConfiguracaoEstilo;
+  eventOrder?: string[];
+}

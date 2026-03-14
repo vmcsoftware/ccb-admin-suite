@@ -429,14 +429,16 @@ export default function SantaCeia() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {congregacoes.map(c => {
-                      const displayName = c.nome.toLowerCase().includes('central')
-                        ? `${c.nome} - ${c.cidade}`
-                        : c.nome;
-                      return (
-                        <SelectItem key={c.id} value={c.id}>{displayName}</SelectItem>
-                      );
-                    })}
+                    {congregacoes
+                      .sort((a, b) => a.nome.localeCompare(b.nome))
+                      .map(c => {
+                        const displayName = c.nome.toLowerCase().includes('central')
+                          ? `${c.nome} - ${c.cidade}`
+                          : c.nome;
+                        return (
+                          <SelectItem key={c.id} value={c.id}>{displayName}</SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -821,14 +823,16 @@ export default function SantaCeia() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {congregacoes.map(c => {
-                      const displayName = c.nome.toLowerCase().includes('central')
-                        ? `${c.nome} - ${c.cidade}`
-                        : c.nome;
-                      return (
-                        <SelectItem key={c.id} value={c.id}>{displayName}</SelectItem>
-                      );
-                    })}
+                    {congregacoes
+                      .sort((a, b) => a.nome.localeCompare(b.nome))
+                      .map(c => {
+                        const displayName = c.nome.toLowerCase().includes('central')
+                          ? `${c.nome} - ${c.cidade}`
+                          : c.nome;
+                        return (
+                          <SelectItem key={c.id} value={c.id}>{displayName}</SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -1133,7 +1137,7 @@ export default function SantaCeia() {
                   getSortedSantaCeias().map((santa, idx) => (
                     <tr key={santa.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>
-                        {new Date(santa.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        {new Date(santa.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                       </td>
                       <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{santa.horario || '03:00'}</td>
                       <td className={`border-2 border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} ${getFontWeightClass()}`}>{getCongregacaoNome(santa.congregacaoId || '')}</td>

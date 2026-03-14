@@ -10,7 +10,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Congregacao, Membro, Evento, Reforco, Ensaio, ResultadoBatismo, ResultadoSantaCeia, ResultadoEnsaioRegional } from '@/types';
+import { Congregacao, Membro, Evento, Reforco, Ensaio, ResultadoBatismo, ResultadoSantaCeia, ResultadoEnsaioRegional, Lista } from '@/types';
 
 /**
  * Normaliza dados de Congregacao do formato antigo para o novo
@@ -78,6 +78,15 @@ function useFirestoreCollection<T extends { id: string }>(collectionName: string
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Verificar se Firebase está inicializado
+    if (!db) {
+      console.error(`[${collectionName}] ERRO: Firebase não foi inicializado! Verifique se as variáveis de ambiente .env.local estão preenchidas.`);
+      setLoading(false);
+      return;
+    }
+
+    console.log(`[${collectionName}] Iniciando listener Firestore...`);
+    
     const q = query(collection(db, collectionName));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => {
@@ -90,14 +99,31 @@ function useFirestoreCollection<T extends { id: string }>(collectionName: string
         
         return rawData as T;
       });
+      console.log(`[${collectionName}] Dados carregados do Firestore:`, data.length, 'documentos');
       setItems(data);
       setLoading(false);
+    }, (error) => {
+      console.error(`[${collectionName}] ERRO ao ouvir Firestore:`, error);
+      console.error('Firebase Error Code:', (error as any)?.code);
+      console.error('Firebase Error Message:', (error as any)?.message);
+      setLoading(false);
     });
+    
     return unsubscribe;
   }, [collectionName]);
 
   const adicionar = async (item: Omit<T, 'id'>) => {
-    await addDoc(collection(db, collectionName), item);
+    try {
+      console.log(`[${collectionName}] Adicionando documento:`, item);
+      const docRef = await addDoc(collection(db, collectionName), item);
+      console.log(`[${collectionName}] Documento adicionado com sucesso. ID: ${docRef.id}`);
+      return docRef;
+    } catch (error) {
+      console.error(`[${collectionName}] Erro ao adicionar documento:`, error);
+      console.error('Firebase Error Code:', (error as any)?.code);
+      console.error('Firebase Error Message:', (error as any)?.message);
+      throw error;
+    }
   };
 
   const remover = async (id: string) => {
@@ -187,4 +213,10 @@ export function useResultadosEnsaioRegional() {
   const { items: resultados, loading, adicionar, remover, atualizar } =
     useFirestoreCollection<ResultadoEnsaioRegional>('resultadosEnsaioRegional');
   return { resultados, loading, adicionar, remover, atualizar };
+}
+
+export function useListas() {
+  const { items: listas, loading, adicionar, remover, atualizar } =
+    useFirestoreCollection<Lista>('listas');
+  return { listas, loading, adicionar, remover, atualizar };
 }
