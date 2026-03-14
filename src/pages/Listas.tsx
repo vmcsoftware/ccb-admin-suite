@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Lista, Categoria, Aviso, ConfiguracaoEstilo } from '@/types';
+import { Lista, Categoria, Aviso, ConfiguracaoEstilo, RegrasEnsaio } from '@/types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
@@ -55,6 +55,7 @@ export default function Listas() {
   const [filtroCategoriasGerenciar, setFiltroCategoriasGerenciar] = useState('todas');
   const [eventosParaSelecionar, setEventosParaSelecionar] = useState<string[]>([]);
   const [reforcoParaSelecionar, setReforcoParaSelecionar] = useState<string[]>([]);
+  const [ensaiosParaSelecionar, setEnsaiosParaSelecionar] = useState<string[]>([]);
   const [filtroTipoReuniaoAtivo, setFiltroTipoReuniaoAtivo] = useState<string | null>(null);
   const [novoAvisoTitulo, setNovoAvisoTitulo] = useState('');
   const [novoAvisoAssunto, setNovoAvisoAssunto] = useState('');
@@ -141,6 +142,7 @@ export default function Listas() {
       setListaEditando({ id: 'temp', ...novaListaObj });
       setEventosParaSelecionar([]);
       setReforcoParaSelecionar([]);
+      setEnsaiosParaSelecionar([]);
       setFiltroTipoReuniaoAtivo(null);
       setTela('gerenciar');
       setCategoriasFiltro('todas');
@@ -160,6 +162,7 @@ export default function Listas() {
     setListaEditando(lista);
     setEventosParaSelecionar(lista.eventosSelected || []);
     setReforcoParaSelecionar(lista.reforcosSelecionados || []);
+    setEnsaiosParaSelecionar(lista.ensaiosSelecionados || []);
     setFiltroTipoReuniaoAtivo(null);
     setAbaGerenciar('reunioes');
     setFiltroSetorGerenciar('todos');
@@ -183,6 +186,7 @@ export default function Listas() {
       ...listaEditando,
       eventosSelected: eventosParaSelecionar,
       reforcosSelecionados: reforcoParaSelecionar,
+      ensaiosSelecionados: ensaiosParaSelecionar,
       avisos: listaEditando.avisos || [],
       eventOrder: previewListasConfig.eventOrder,
     };
@@ -198,6 +202,7 @@ export default function Listas() {
       setListaEditando(null);
       setEventosParaSelecionar([]);
       setReforcoParaSelecionar([]);
+      setEnsaiosParaSelecionar([]);
       setCategoriasFiltro('todas');
       setNovaCategoriaNome('');
       setAbaGerenciar('reunioes');
@@ -446,7 +451,7 @@ export default function Listas() {
 
   const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-  const calcularDatasEnsaio = (regra: any, ano: number): string[] => {
+  const calcularDatasEnsaio = (regra: RegrasEnsaio, ano: number): string[] => {
     const datas: string[] = [];
     const indiceDia = diasSemana.indexOf(regra.diasSemana?.[0]) ?? -1;
     if (indiceDia === -1) return datas;
@@ -742,7 +747,7 @@ export default function Listas() {
     }
   };
 
-  const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos;
+  const hasSelection = selectedCongs.length > 0 || selectedMembros.length > 0 || incluirReforcos || incluirEventos || ensaiosParaSelecionar.length > 0;
 
   // TELA: FORMULÁRIO NOVA LISTA
   if (tela === 'formulario') {
@@ -1211,6 +1216,82 @@ export default function Listas() {
             {reforcosSalvos.length > 0 && eventosReuniao.length > 0 && (
               <div className="border-t border-border pt-6" />
             )}
+
+            {/* SEÇÃO: ENSAIOS REGIONAIS */}
+            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">Ensaios Regionais (Selecione para Preview)</h3>
+                  <Badge variant="secondary">
+                    {ensaiosParaSelecionar.length}/{getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length} selecionados
+                  </Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm text-foreground uppercase">Ensaios Regionais</h4>
+                  <div className="glass-card rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-muted/50 border-b border-border">
+                          <th className="px-4 py-2 text-left w-8">
+                            <Checkbox 
+                              checked={
+                                getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 &&
+                                getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).every((_, idx) =>
+                                  ensaiosParaSelecionar.includes(`ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`)
+                                )
+                              }
+                              onCheckedChange={(checked) => {
+                                const ensaiosAgendados = getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear());
+                                if (checked) {
+                                  const novoIds = ensaiosAgendados.map((_, idx) => `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`);
+                                  setEnsaiosParaSelecionar(prev => [...new Set([...prev, ...novoIds])])
+                                } else {
+                                  setEnsaiosParaSelecionar(prev => prev.filter(id => !id.startsWith('ensaio-')))
+                                }
+                              }}
+                            />
+                          </th>
+                          <th className="px-4 py-2 text-left">Título</th>
+                          <th className="px-4 py-2 text-left">Data</th>
+                          <th className="px-4 py-2 text-left">Hora</th>
+                          <th className="px-4 py-2 text-left">Local</th>
+                          <th className="px-4 py-2 text-left">Ancião</th>
+                          <th className="px-4 py-2 text-left">Encarregado Regional</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).map((ensaio, idx) => {
+                          const ensaioId = `ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`;
+                          return (
+                            <tr key={ensaioId} className="border-b border-border hover:bg-muted/30">
+                              <td className="px-4 py-2">
+                                <Checkbox 
+                                  checked={ensaiosParaSelecionar.includes(ensaioId)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setEnsaiosParaSelecionar(prev => [...prev, ensaioId])
+                                    } else {
+                                      setEnsaiosParaSelecionar(prev => prev.filter(id => id !== ensaioId))
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td className="px-4 py-2 font-medium">{ensaio.titulo}</td>
+                              <td className="px-4 py-2">{new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                              <td className="px-4 py-2">{ensaio.horario || '—'}</td>
+                              <td className="px-4 py-2">{ensaio.local || '—'}</td>
+                              <td className="px-4 py-2">{ensaio.anciao ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao) : '—'}</td>
+                              <td className="px-4 py-2">{ensaio.encarregadoRegional ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional) : '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1503,7 +1584,7 @@ export default function Listas() {
                     )}
 
                     {/* ENSAIOS REGIONAIS AGENDADOS */}
-                    {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
+                    {ensaiosParaSelecionar.length > 0 && getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
                       <div className="lista-section space-y-1">
                         <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                           <h5 className="font-bold text-sm text-gray-900 uppercase">ENSAIOS REGIONAIS</h5>
@@ -1521,7 +1602,9 @@ export default function Listas() {
                             </tr>
                           </thead>
                           <tbody>
-                            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).map((ensaio, idx) => {
+                            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).filter((_, idx) => 
+                              ensaiosParaSelecionar.includes(`ensaio-${listaEditando?.mes || new Date().getMonth() + 1}-${listaEditando?.ano || new Date().getFullYear()}-${idx}`)
+                            ).map((ensaio, idx) => {
                               const dataObj = new Date(ensaio.data + 'T12:00:00');
                               const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
                               const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });

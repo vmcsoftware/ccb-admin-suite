@@ -195,6 +195,7 @@ export interface Lista {
   avisos?: Aviso[];
   eventosSelected?: string[];
   reforcosSelecionados?: string[];
+  ensaiosSelecionados?: string[];
   ordenacaoEventos?: { [tipo: string]: number };
   estiloConfig?: ConfiguracaoEstilo;
   eventOrder?: string[];
