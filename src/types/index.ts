@@ -107,7 +107,9 @@ export interface Ensaio {
   local: string;
   descricao?: string;
   anciao?: string;
+  anciaoOutraLocalidade?: { nome: string; localidade: string };
   encarregadoRegional?: string;
+  encarregadoRegionalOutraLocalidade?: { nome: string; localidade: string };
   regras: RegrasEnsaio[];
   ativo: boolean;
   criadoEm?: string;

@@ -201,46 +201,129 @@ export default function Ensaios() {
 
                 <div>
                   <Label>Ancião</Label>
-                  <Select
-                    value={form.anciao || 'none'}
-                    onValueChange={(value) =>
-                      setForm({ ...form, anciao: value === 'none' ? '' : value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um ancião" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum selecionado</SelectItem>
-                      {membros.map((membro) => (
-                        <SelectItem key={membro.id} value={membro.id}>
-                          {membro.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={form.anciao || 'none'}
+                      onValueChange={(value) =>
+                        setForm({ ...form, anciao: value === 'none' ? '' : value, anciaoOutraLocalidade: undefined })
+                      }
+                      disabled={form.anciaoOutraLocalidade ? true : false}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um ancião" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum selecionado</SelectItem>
+                        {membros.map((membro) => (
+                          <SelectItem key={membro.id} value={membro.id}>
+                            {membro.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant={form.anciaoOutraLocalidade ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setForm({
+                          ...form,
+                          marcado: !form.anciaoOutraLocalidade,
+                          anciao: '',
+                          anciaoOutraLocalidade: form.anciaoOutraLocalidade ? undefined : { nome: '', localidade: '' }
+                        });
+                      }}
+                    >
+                      Outra Localidade
+                    </Button>
+                  </div>
+                  {form.anciaoOutraLocalidade && (
+                    <div className="mt-2 space-y-2">
+                      <Input
+                        placeholder="Nome do ancião"
+                        value={form.anciaoOutraLocalidade.nome}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            anciaoOutraLocalidade: { ...form.anciaoOutraLocalidade!, nome: e.target.value }
+                          })
+                        }
+                      />
+                      <Input
+                        placeholder="Localidade"
+                        value={form.anciaoOutraLocalidade.localidade}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            anciaoOutraLocalidade: { ...form.anciaoOutraLocalidade!, localidade: e.target.value }
+                          })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Encarregado Regional</Label>
-                  <Select
-                    value={form.encarregadoRegional || 'none'}
-                    onValueChange={(value) =>
-                      setForm({ ...form, encarregadoRegional: value === 'none' ? '' : value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um encarregado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum selecionado</SelectItem>
-                      {membros.map((membro) => (
-                        <SelectItem key={membro.id} value={membro.id}>
-                          {membro.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={form.encarregadoRegional || 'none'}
+                      onValueChange={(value) =>
+                        setForm({ ...form, encarregadoRegional: value === 'none' ? '' : value, encarregadoRegionalOutraLocalidade: undefined })
+                      }
+                      disabled={form.encarregadoRegionalOutraLocalidade ? true : false}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um encarregado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum selecionado</SelectItem>
+                        {membros.map((membro) => (
+                          <SelectItem key={membro.id} value={membro.id}>
+                            {membro.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant={form.encarregadoRegionalOutraLocalidade ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setForm({
+                          ...form,
+                          encarregadoRegional: '',
+                          encarregadoRegionalOutraLocalidade: form.encarregadoRegionalOutraLocalidade ? undefined : { nome: '', localidade: '' }
+                        });
+                      }}
+                    >
+                      Outra Localidade
+                    </Button>
+                  </div>
+                  {form.encarregadoRegionalOutraLocalidade && (
+                    <div className="mt-2 space-y-2">
+                      <Input
+                        placeholder="Nome do encarregado"
+                        value={form.encarregadoRegionalOutraLocalidade.nome}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            encarregadoRegionalOutraLocalidade: { ...form.encarregadoRegionalOutraLocalidade!, nome: e.target.value }
+                          })
+                        }
+                      />
+                      <Input
+                        placeholder="Localidade"
+                        value={form.encarregadoRegionalOutraLocalidade.localidade}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            encarregadoRegionalOutraLocalidade: { ...form.encarregadoRegionalOutraLocalidade!, localidade: e.target.value }
+                          })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">

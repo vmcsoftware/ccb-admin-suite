@@ -925,7 +925,7 @@ export default function Listas() {
             {meses[listaEditando.mes]} de {listaEditando.ano}
           </h1>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={gerarXLS}>
               <Download className="h-4 w-4" /> Exportar
             </Button>
             <Button variant="outline" className="gap-2" onClick={importarTodos}>
