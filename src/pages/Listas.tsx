@@ -1346,7 +1346,7 @@ export default function Listas() {
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
-                                  <tr className="bg-gray-300 border border-gray-900">
+                                  <tr className="h-12 bg-gray-300 border border-gray-900">
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
@@ -1361,7 +1361,7 @@ export default function Listas() {
                                     const diaSemana = diasSemana[dataObj.getDay()];
                                     const congregacao = congregacoes.find(c => c.id === e.congregacaoId);
                                     return (
-                                      <tr key={e.id} className="border border-gray-900 bg-white">
+                                      <tr key={e.id} className="h-12 border border-gray-900 bg-white">
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{e.horario || '-'}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(e.congregacaoId) || '-'}</td>
@@ -1397,7 +1397,7 @@ export default function Listas() {
                               </div>
                               <table className="w-full border-collapse">
                                 <thead>
-                                  <tr className="bg-gray-300 border border-gray-900">
+                                  <tr className="h-12 bg-gray-300 border border-gray-900">
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
                                     <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCALIDADE</th>
@@ -1426,7 +1426,7 @@ export default function Listas() {
                                     const todosMembros = [...membrosLocais, ...membrosOutras].join(', ') || '-';
                                     
                                     return (
-                                      <tr key={r.id} className="border border-gray-900 bg-white">
+                                      <tr key={r.id} className="h-12 border border-gray-900 bg-white">
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{r.horario || '-'}</td>
                                         <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(r.congregacaoId) || '-'}</td>
@@ -1451,14 +1451,14 @@ export default function Listas() {
                         </div>
                         <table className="w-full border-collapse">
                           <thead>
-                            <tr className="bg-gray-300 border border-gray-900">
+                            <tr className="h-12 bg-gray-300 border border-gray-900">
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ASSUNTO</th>
                             </tr>
                           </thead>
                           <tbody>
                             {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map((aviso) => (
-                              <tr key={aviso.id} className="border border-gray-900 bg-white">
+                              <tr key={aviso.id} className="h-12 border border-gray-900 bg-white">
                                 <td className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{aviso.titulo}</td>
                                 <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-800 break-words`}>{aviso.assunto}</td>
                               </tr>
