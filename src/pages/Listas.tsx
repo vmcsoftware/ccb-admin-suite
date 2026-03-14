@@ -450,75 +450,121 @@ export default function Listas() {
     
     try {
       const element = activeRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 1200,
-        logging: false,
-      });
       
-      // Usar JPEG para melhor compressão e qualidade
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+      // Adicionar estilos de quebra de página antes de renderizar
+      const style = document.createElement('style');
+      style.innerHTML = `
+        table { break-inside: avoid; page-break-inside: avoid; }
+        .lista-section { break-inside: avoid; page-break-inside: avoid; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+      `;
+      document.head.appendChild(style);
       
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margins = 4; // Margens reduzidas para economizar papel
-      const imgWidth = pageWidth - (margins * 2);
-      const yPosition = margins;
-      
-      // Calcula altura proporcional da imagem
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const maxHeightPerPage = pageHeight - (margins * 2);
-      
-      // Primeira página
-      let currentY = 0;
-      let remainingHeight = imgHeight;
-      
-      while (remainingHeight > 0) {
-        const heightToCopy = Math.min(remainingHeight, maxHeightPerPage);
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 1200,
+          logging: false,
+        });
         
-        // Criar canvas temporário para cada seção
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = (heightToCopy / imgHeight) * canvas.height;
+        // Usar JPEG para melhor compressão e qualidade
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
         
-        const ctx = tempCanvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0,
-            (currentY / imgHeight) * canvas.height,
-            canvas.width,
-            (heightToCopy / imgHeight) * canvas.height,
-            0,
-            0,
-            canvas.width,
-            (heightToCopy / imgHeight) * canvas.height
-          );
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margins = 4; // Margens reduzidas para economizar papel
+        const imgWidth = pageWidth - (margins * 2);
+        
+        // Calcula altura proporcional da imagem
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        // Reduzir um pouco o maxHeightPerPage para deixar margem de segurança
+        const maxHeightPerPage = pageHeight - (margins * 3);
+        
+        // Detectar pontos de quebra baseado nas seções (divs com classe lista-section)
+        const sections = element.querySelectorAll('.lista-section, > div > div');
+        const sectionBreakPoints: number[] = [imgHeight];
+        
+        sections.forEach((section) => {
+          const rect = section.getBoundingClientRect();
+          const elementTop = rect.top - element.getBoundingClientRect().top;
+          const sectionHeight = (elementTop * imgWidth) / (element.scrollWidth || element.clientWidth);
+          if (sectionHeight < imgHeight && sectionHeight > 0) {
+            sectionBreakPoints.push(sectionHeight);
+          }
+        });
+        
+        sectionBreakPoints.sort((a, b) => a - b);
+        
+        // Função para encontrar melhor ponto de quebra
+        const findBestBreakPoint = (currentY: number, nextLimit: number): number => {
+          const availableSpace = Math.min(nextLimit - currentY, maxHeightPerPage);
+          
+          // Encontrar a seção mais próxima que cabe no espaço
+          let bestBreak = currentY + availableSpace;
+          for (const breakPoint of sectionBreakPoints) {
+            if (breakPoint > currentY && breakPoint <= currentY + availableSpace) {
+              bestBreak = breakPoint;
+            }
+          }
+          
+          return bestBreak;
+        };
+        
+        // Gerar PDF com quebras inteligentes
+        let currentY = 0;
+        let pageNum = 0;
+        
+        while (currentY < imgHeight) {
+          const nextBreak = findBestBreakPoint(currentY, imgHeight);
+          const heightToCopy = Math.min(nextBreak - currentY, maxHeightPerPage);
+          
+          // Criar canvas temporário para cada seção
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvas.width;
+          tempCanvas.height = (heightToCopy / imgHeight) * canvas.height;
+          
+          const ctx = tempCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0,
+              (currentY / imgHeight) * canvas.height,
+              canvas.width,
+              (heightToCopy / imgHeight) * canvas.height,
+              0,
+              0,
+              canvas.width,
+              (heightToCopy / imgHeight) * canvas.height
+            );
+          }
+          
+          const pageImgData = tempCanvas.toDataURL('image/jpeg', 0.92);
+          
+          if (pageNum === 0) {
+            // Primeira página
+            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+          } else {
+            // Páginas subsequentes
+            pdf.addPage();
+            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
+          }
+          
+          currentY = nextBreak;
+          pageNum++;
         }
         
-        const pageImgData = tempCanvas.toDataURL('image/jpeg', 0.92);
-        
-        if (remainingHeight === imgHeight) {
-          // Primeira página
-          pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
-        } else {
-          // Páginas subsequentes
-          pdf.addPage();
-          pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
-        }
-        
-        currentY += heightToCopy;
-        remainingHeight -= heightToCopy;
+        pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
+      } finally {
+        // Remover estilo temporário
+        document.head.removeChild(style);
       }
-      
-      pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
     }
@@ -1246,7 +1292,7 @@ export default function Listas() {
                 <div className="border-2 border-border rounded-lg overflow-hidden">
                   <div className={`bg-white p-3 space-y-2 ${getLineHeightClass()}`} ref={previewRefGerenciar} style={{ fontFamily: getFontFamilyStyle() }}>
                     {/* CABEÇALHO */}
-                    <div className="text-center space-y-0.5 pb-2 border-b-2 border-gray-800">
+                    <div className="lista-section text-center space-y-0.5 pb-2 border-b-2 border-gray-800">
                       <div className="text-xs font-semibold tracking-wider">CONGREGAÇÃO CRISTÃ NO BRASIL</div>
                       <div className="text-xs font-semibold tracking-wider">REGIONAL UBERLÂNDIA - {meses[listaEditando?.mes || 0].toUpperCase()} DE {listaEditando?.ano || new Date().getFullYear()}</div>
                       <div className="text-xs font-semibold tracking-wider">ADMINISTRAÇÃO DE ITUIUTABA</div>
@@ -1259,7 +1305,7 @@ export default function Listas() {
                         {getSortedEventTypes([...new Set(eventosReuniao.filter(e => eventosParaSelecionar.includes(e.id)).map(e => e.subtipoReuniao))]).map(tipo => {
                           const eventos = eventosReuniao.filter(e => e.subtipoReuniao === tipo && eventosParaSelecionar.includes(e.id));
                           return (
-                            <div key={tipo} className="space-y-1">
+                            <div key={tipo} className="lista-section space-y-1">
                               <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">{getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
@@ -1310,7 +1356,7 @@ export default function Listas() {
                         {getSortedEventTypes([...new Set(reforcosSalvos.filter(r => reforcoParaSelecionar.includes(r.id)).map(r => r.tipo))]).map(tipo => {
                           const reforcosFiltered = reforcosSalvos.filter(r => r.tipo === tipo && reforcoParaSelecionar.includes(r.id));
                           return (
-                            <div key={tipo} className="space-y-1">
+                            <div key={tipo} className="lista-section space-y-1">
                               <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                                 <h5 className="font-bold text-sm text-gray-900 uppercase">REFORÇO - {getDisplayName(tipo)}</h5>
                                 <input type="checkbox" className="w-4 h-4 cursor-pointer" />
@@ -1364,7 +1410,7 @@ export default function Listas() {
 
                     {/* RODAPÉ: AVISOS */}
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                      <div className="space-y-2">
+                      <div className="lista-section space-y-2">
                         <div className="flex items-center justify-between pb-1 border-b border-gray-900">
                           <h5 className={`font-bold ${getFontSizeClass()} text-gray-900 uppercase`}>AVISOS</h5>
                           <input type="checkbox" className="w-4 h-4 cursor-pointer" />
