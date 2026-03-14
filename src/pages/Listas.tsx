@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FileText, Download, Settings, Eye, Edit2, Trash2, ArrowLeft, RefreshCw, Plus } from 'lucide-react';
-import { useCongregacoes, useMembros, useReforcos, useEventos, useListas } from '@/hooks/useData';
+import { useCongregacoes, useMembros, useReforcos, useEventos, useListas, useEnsaios } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ export default function Listas() {
   const { membros } = useMembros();
   const { reforcos } = useReforcos();
   const { eventos } = useEventos();
+  const { ensaios } = useEnsaios();
   const { listas: listasFirebase, adicionar, remover, atualizar } = useListas();
   const previewRefGerenciar = useRef<HTMLDivElement>(null);
   const previewRefEditor = useRef<HTMLDivElement>(null);
@@ -441,6 +442,62 @@ export default function Listas() {
       'Ordenação': 'Ordenação'
     };
     return displayNames[tipo] || tipo;
+  };
+
+  const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+  const calcularDatasEnsaio = (regra: any, ano: number): string[] => {
+    const datas: string[] = [];
+    const indiceDia = diasSemana.indexOf(regra.diasSemana?.[0]) ?? -1;
+    if (indiceDia === -1) return datas;
+
+    const mesesParaProcessar = regra.meses && regra.meses.length > 0 ? regra.meses : [];
+    
+    for (const mes of mesesParaProcessar) {
+      let contador = 0;
+      
+      for (let dia = 1; dia <= 31; dia++) {
+        const data = new Date(ano, mes - 1, dia);
+        if (data.getMonth() !== mes - 1) break;
+        
+        if (data.getDay() === (indiceDia + 1) % 7) {
+          contador++;
+          if (contador === regra.semanas?.[0]) {
+            const dataISO = data.toISOString().split('T')[0];
+            datas.push(dataISO);
+            break;
+          }
+        }
+      }
+    }
+    
+    return datas.sort();
+  };
+
+  const getEnsaiosAgendados = (mes: number, ano: number) => {
+    const ensaiosAgendados: { titulo: string; data: string; horario: string; local: string }[] = [];
+    
+    ensaios.forEach(ensaio => {
+      if (!ensaio.ativo) return;
+      
+      ensaio.regras.forEach(regra => {
+        if (!regra.meses || !regra.meses.includes(mes)) return;
+        if (!regra.diasSemana || regra.diasSemana.length === 0) return;
+        if (!regra.semanas || regra.semanas.length === 0) return;
+
+        const datas = calcularDatasEnsaio(regra, ano);
+        datas.forEach(data => {
+          ensaiosAgendados.push({
+            titulo: ensaio.titulo,
+            data,
+            horario: regra.horario,
+            local: ensaio.local,
+          });
+        });
+      });
+    });
+    
+    return ensaiosAgendados.sort((a, b) => a.data.localeCompare(b.data));
   };
 
   const gerarPDF = async () => {
@@ -1408,9 +1465,9 @@ export default function Listas() {
                                 <tbody>
                                   {reforcosFiltered.sort((a, b) => a.data.localeCompare(b.data)).map((r, index) => {
                                     const dataObj = new Date(r.data + 'T12:00:00');
-                                    const diasSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                                    const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
                                     const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                                    const diaSemana = diasSemana[dataObj.getDay()];
+                                    const diaSemana = diasSemanaAbr[dataObj.getDay()];
                                     const congregacao = congregacoes.find(c => c.id === r.congregacaoId);
                                     
                                     // Montar lista de membros locais
@@ -1440,6 +1497,43 @@ export default function Listas() {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+
+                    {/* ENSAIOS REGIONAIS AGENDADOS */}
+                    {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).length > 0 && (
+                      <div className="lista-section space-y-1">
+                        <div className="flex items-center justify-between pb-1 border-b border-gray-900">
+                          <h5 className="font-bold text-sm text-gray-900 uppercase">ENSAIOS REGIONAIS</h5>
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                        </div>
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-300 border border-gray-900">
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORA</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENSAIO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCAL</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {getEnsaiosAgendados(listaEditando?.mes || new Date().getMonth() + 1, listaEditando?.ano || new Date().getFullYear()).map((ensaio, idx) => {
+                              const dataObj = new Date(ensaio.data + 'T12:00:00');
+                              const diasSemanaAbr = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+                              const dataBR = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                              const diaSemana = diasSemanaAbr[dataObj.getDay()];
+                              
+                              return (
+                                <tr key={idx} className="border border-gray-900 bg-white">
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR} {diaSemana}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>{ensaio.horario}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.titulo}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.local}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     )}
 
