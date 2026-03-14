@@ -1343,13 +1343,27 @@ export default function Listas() {
 
                     {/* RODAPÉ: AVISOS */}
                     {listaEditando?.avisos && listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).length > 0 && (
-                      <div className="space-y-2 border-t-2 border-gray-900 pt-4 mt-6">
-                        {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map(aviso => (
-                          <div key={aviso.id} className="space-y-1">
-                            <p className="font-bold text-xs text-gray-900 uppercase">{aviso.titulo}</p>
-                            <p className="text-xs text-gray-800 leading-relaxed">{aviso.assunto}</p>
-                          </div>
-                        ))}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-2 border-b border-gray-900">
+                          <h5 className="font-bold text-sm text-gray-900 uppercase">AVISOS</h5>
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer" />
+                        </div>
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-300 border border-gray-900">
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-center ${getFontSizeClass()} text-gray-900 break-words`}>ASSUNTO</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {listaEditando.avisos.filter(a => a.mostrarNoPreview !== false).map((aviso) => (
+                              <tr key={aviso.id} className="border border-gray-900 bg-white">
+                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-center text-gray-900 font-bold break-words`}>{aviso.titulo}</td>
+                                <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left text-gray-800 break-words`}>{aviso.assunto}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>
