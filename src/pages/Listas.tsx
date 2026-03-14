@@ -1615,8 +1615,9 @@ export default function Listas() {
                         <table className="w-full border-collapse">
                           <thead>
                             <tr className="bg-gray-300 border border-gray-900">
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>TÍTULO</th>
-                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>LOCAL</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>DATA</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>HORÁRIO</th>
+                              <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>CONGREGAÇÃO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ANCIÃO</th>
                               <th className={`border border-gray-900 ${getPaddingClass()} ${getFontWeightClass()} text-left align-middle ${getFontSizeClass()} text-gray-900 break-words`}>ENC. REGIONAL</th>
                             </tr>
@@ -1628,21 +1629,26 @@ export default function Listas() {
                               const nomeAnciao = ensaio.anciaoOutraLocalidade
                                 ? ensaio.anciaoOutraLocalidade.nome
                                 : ensaio.anciao 
-                                  ? membros.find(m => m.id === ensaio.anciao)?.nome || '-'
+                                  ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || '-')
                                   : '-';
                               
                               const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
                                 ? ensaio.encarregadoRegionalOutraLocalidade.nome
                                 : ensaio.encarregadoRegional
-                                  ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-'
+                                  ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-')
                                   : '-';
+                              
+                              const dataBR = ensaio.data 
+                                ? new Date(ensaio.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                                : '-';
                               
                               return (
                                 <tr key={idx} className="border border-gray-900 bg-white">
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.titulo}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.local}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{reduzirNome(nomeAnciao)}</td>
-                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{reduzirNome(nomeEncarregado)}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{dataBR}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{ensaio.horario || '-'}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{getCongregacaoNome(ensaio.congregacaoId) || '-'}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeAnciao}</td>
+                                  <td className={`border border-gray-900 ${getPaddingClass()} ${getFontSizeClass()} text-left align-middle text-gray-900 break-words`}>{nomeEncarregado}</td>
                                 </tr>
                               );
                             })}
