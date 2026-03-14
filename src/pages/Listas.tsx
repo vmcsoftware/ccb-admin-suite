@@ -1275,13 +1275,13 @@ export default function Listas() {
                       <tbody>
                         {ensaios.map((ensaio) => {
                           const nomeAnciao = ensaio.anciaoOutraLocalidade 
-                            ? `${ensaio.anciaoOutraLocalidade.nome} (${ensaio.anciaoOutraLocalidade.localidade})`
+                            ? ensaio.anciaoOutraLocalidade.nome
                             : ensaio.anciao 
                               ? reduzirNome(membros.find(m => m.id === ensaio.anciao)?.nome || ensaio.anciao)
                               : '—';
                           
                           const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
-                            ? `${ensaio.encarregadoRegionalOutraLocalidade.nome} (${ensaio.encarregadoRegionalOutraLocalidade.localidade})`
+                            ? ensaio.encarregadoRegionalOutraLocalidade.nome
                             : ensaio.encarregadoRegional
                               ? reduzirNome(membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || ensaio.encarregadoRegional)
                               : '—';
@@ -1626,13 +1626,13 @@ export default function Listas() {
                               ensaiosParaSelecionar.includes(ensaio.id)
                             ).map((ensaio, idx) => {
                               const nomeAnciao = ensaio.anciaoOutraLocalidade
-                                ? `${ensaio.anciaoOutraLocalidade.nome} (${ensaio.anciaoOutraLocalidade.localidade})`
+                                ? ensaio.anciaoOutraLocalidade.nome
                                 : ensaio.anciao 
                                   ? membros.find(m => m.id === ensaio.anciao)?.nome || '-'
                                   : '-';
                               
                               const nomeEncarregado = ensaio.encarregadoRegionalOutraLocalidade
-                                ? `${ensaio.encarregadoRegionalOutraLocalidade.nome} (${ensaio.encarregadoRegionalOutraLocalidade.localidade})`
+                                ? ensaio.encarregadoRegionalOutraLocalidade.nome
                                 : ensaio.encarregadoRegional
                                   ? membros.find(m => m.id === ensaio.encarregadoRegional)?.nome || '-'
                                   : '-';
