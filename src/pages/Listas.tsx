@@ -514,164 +514,89 @@ export default function Listas() {
     try {
       const element = activeRef.current;
       
-      // Estilo para PDF - CORRIGIDO com espaçamento adequado
-      const stylePDF = document.createElement('style');
-      stylePDF.innerHTML = `
-        #pdf-export {
-          width: 210mm;
-          margin: 0;
-          padding: 8mm;
-          font-family: ${getFontFamilyStyle()};
-          background: white;
-          line-height: 1.4;
-        }
-        
-        #pdf-export .lista-section {
-          margin-bottom: 6mm;
-          page-break-inside: avoid;
-        }
-        
-        #pdf-export h3, #pdf-export h4 {
-          margin: 3mm 0 2mm 0;
-          font-size: 12pt;
-          font-weight: bold;
-          line-height: 1.3;
-        }
-        
-        #pdf-export h5 {
-          margin: 2mm 0 1mm 0;
-          font-size: 11pt;
-          font-weight: bold;
-          border-bottom: 2px solid #000;
-          padding-bottom: 1.5mm;
-          line-height: 1.2;
-        }
-        
-        #pdf-export div {
-          margin: 0;
-          padding: 0;
-        }
-        
-        #pdf-export table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 2mm 0 3mm 0;
-          page-break-inside: avoid;
-        }
-        
-        #pdf-export thead {
-          page-break-after: avoid;
-        }
-        
-        #pdf-export th {
-          background-color: #d3d3d3;
-          border: 1px solid #000;
-          padding: 3mm 2mm;
-          font-weight: bold;
-          font-size: 10pt;
-          text-align: left;
-          line-height: 1.3;
-          height: auto;
-          vertical-align: middle;
-          word-wrap: break-word;
-        }
-        
-        #pdf-export td {
-          border: 1px solid #000;
-          padding: 3.5mm 2mm;
-          font-size: 9.5pt;
-          line-height: 1.4;
-          vertical-align: middle;
-          height: auto;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-        
-        #pdf-export tbody tr {
-          page-break-inside: avoid;
-        }
-        
-        #pdf-export input[type="checkbox"],
-        #pdf-export button,
-        #pdf-export .flex {
-          display: none !important;
-        }
-      `;
-      document.head.appendChild(stylePDF);
+      // Clonar elemento para não afetar a tela
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.id = 'pdf-container';
+      clone.style.width = '210mm';
+      clone.style.margin = '0';
+      clone.style.padding = '5mm';
+      clone.style.backgroundColor = 'white';
       
-      // Criar container para PDF
-      const container = document.createElement('div');
-      container.id = 'pdf-export';
-      container.innerHTML = element.innerHTML;
-      document.body.appendChild(container);
+      // Ocultar elementos desnecessários
+      clone.querySelectorAll('input[type="checkbox"], button, .flex').forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
       
-      // Renderizar canvas
-      const canvas = await html2canvas(container, {
-        scale: 2.5,
+      // Adicionar ao DOM temporariamente
+      document.body.appendChild(clone);
+      
+      // Renderizar com html2canvas - simples e direto
+      const canvas = await html2canvas(clone, {
+        scale: 1.5, // escala moderada para qualidade
         useCORS: true,
         backgroundColor: '#ffffff',
-        windowWidth: 1200,
+        windowWidth: 1000,
         logging: false,
         allowTaint: true,
         imageTimeout: 0,
-        foreignObjectRendering: true,
       });
       
+      // Criar PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        compress: true,
       });
       
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 5;
-      const pdfWidth = pageWidth - (margin * 2);
-      const pdfHeight = pageHeight - (margin * 2);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const availableWidth = pageWidth - (margin * 2);
       
-      // Cálculo de proporções
-      const imgWidth = (canvas.width / 96) * 25.4;
-      const imgHeight = (canvas.height / 96) * 25.4;
-      const ratio = pdfWidth / imgWidth;
+      // Calcular escala para caber na página
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = availableWidth / imgWidth;
       const scaledHeight = imgHeight * ratio;
       
-      // Quebra de páginas inteligente
-      let currentY = 0;
-      let pageNum = 0;
+      // Quebrar em páginas
+      let yOffset = 0;
+      let isFirstPage = true;
       
-      while (currentY < imgHeight) {
-        if (pageNum > 0) {
+      while (yOffset < imgHeight) {
+        if (!isFirstPage) {
           pdf.addPage();
         }
         
-        const remainingHeight = imgHeight - currentY;
-        const pageHeightContent = Math.min(remainingHeight, pdfHeight / ratio);
+        // Altura disponível na página atual
+        const availableHeight = (pageHeight - (margin * 2)) / ratio;
+        const heightToCopy = Math.min(availableHeight, imgHeight - yOffset);
         
-        // Slice do canvas
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = Math.ceil((pageHeightContent / imgHeight) * canvas.height);
+        // Criar canvas temporário com apenas a seção a ser copiada
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgWidth;
+        tempCanvas.height = Math.ceil(heightToCopy);
         
-        const ctx = sliceCanvas.getContext('2d');
+        const ctx = tempCanvas.getContext('2d');
         if (ctx) {
-          const sourceY = Math.round((currentY / imgHeight) * canvas.height);
           ctx.drawImage(
             canvas,
-            0, sourceY,
-            canvas.width, sliceCanvas.height,
+            0, yOffset,
+            imgWidth, heightToCopy,
             0, 0,
-            canvas.width, sliceCanvas.height
+            imgWidth, heightToCopy
           );
         }
         
-        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pageHeightContent);
+        const imgData = tempCanvas.toDataURL('image/png');
+        const imgHeightOnPage = heightToCopy * ratio;
         
-        currentY += pageHeightContent;
-        pageNum++;
+        pdf.addImage(imgData, 'PNG', margin, margin, availableWidth, imgHeightOnPage);
         
-        if (pageNum > 300) break;
+        yOffset += heightToCopy;
+        isFirstPage = false;
+        
+        if (yOffset >= imgHeight) break;
       }
       
       pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -680,11 +605,7 @@ export default function Listas() {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF: ' + error);
     } finally {
-      const styleElement = document.querySelector('style:last-of-type');
-      if (styleElement && styleElement.innerHTML.includes('pdf-export')) {
-        document.head.removeChild(styleElement);
-      }
-      const container = document.getElementById('pdf-export');
+      const container = document.getElementById('pdf-container');
       if (container) {
         document.body.removeChild(container);
       }
