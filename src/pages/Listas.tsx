@@ -555,7 +555,10 @@ export default function Listas() {
         htmlEl.style.margin = computed.margin;
         htmlEl.style.padding = computed.padding;
         htmlEl.style.lineHeight = computed.lineHeight;
-        htmlEl.style.textAlign = computed.textAlign;
+        
+        // Forçar alinhamento à esquerda e vertical center
+        htmlEl.style.textAlign = 'left';
+        htmlEl.style.verticalAlign = 'middle';
         
         // Remover apenas inputs, buttons, checkboxes e flex containers interativos
         if (htmlEl.tagName === 'INPUT' || 
