@@ -538,7 +538,7 @@ export default function Listas() {
       const horas = agora.getHours();
       const minutos = String(agora.getMinutes()).padStart(2, '0');
       
-      const rodapeTexto = `Ituiutaba/MG, ${dia} de ${mes.charAt(0).toUpperCase() + mes.slice(1)} de ${ano} Às ${horas}h${minutos}`;
+      const rodapeTexto = `Ituiutaba/MG, ${dia} de ${mes.charAt(0).toUpperCase() + mes.slice(1)} de ${ano} às ${horas}h${minutos}`;
       
       // Criar elemento do rodapé
       const rodapeDiv = document.createElement('div');
@@ -581,8 +581,12 @@ export default function Listas() {
         htmlEl.style.padding = computed.padding;
         htmlEl.style.lineHeight = computed.lineHeight;
         
-        // Forçar alinhamento à esquerda e vertical center
-        htmlEl.style.textAlign = 'left';
+        // Forçar alinhamento à esquerda, EXCETO para cabeçalho (manter centrado)
+        if (htmlEl.classList.contains('text-center') || computed.textAlign === 'center') {
+          htmlEl.style.textAlign = 'center';
+        } else {
+          htmlEl.style.textAlign = 'left';
+        }
         htmlEl.style.verticalAlign = 'middle';
         
         // Remover apenas inputs, buttons, checkboxes e flex containers interativos
