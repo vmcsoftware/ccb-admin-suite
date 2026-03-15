@@ -529,6 +529,31 @@ export default function Listas() {
       // Clonar elemento
       const clone = element.cloneNode(true) as HTMLElement;
       
+      // Gerar data e hora do rodapé
+      const agora = new Date();
+      const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+      const dia = agora.getDate();
+      const mes = meses[agora.getMonth()];
+      const ano = agora.getFullYear();
+      const horas = agora.getHours();
+      const minutos = String(agora.getMinutes()).padStart(2, '0');
+      
+      const rodapeTexto = `Ituiutaba/MG, ${dia} de ${mes.charAt(0).toUpperCase() + mes.slice(1)} de ${ano} Às ${horas}h${minutos}`;
+      
+      // Criar elemento do rodapé
+      const rodapeDiv = document.createElement('div');
+      rodapeDiv.style.marginTop = '30px';
+      rodapeDiv.style.paddingTop = '20px';
+      rodapeDiv.style.borderTop = '1px solid #999';
+      rodapeDiv.style.textAlign = 'right';
+      rodapeDiv.style.fontSize = '10pt';
+      rodapeDiv.style.fontFamily = getFontFamilyStyle();
+      rodapeDiv.style.color = '#333';
+      rodapeDiv.textContent = rodapeTexto;
+      
+      // Adicionar rodapé ao clone
+      clone.appendChild(rodapeDiv);
+      
       // Copiar estilos computados para TODOS os elementos
       const allElements = clone.querySelectorAll('*');
       allElements.forEach((el) => {
@@ -567,6 +592,9 @@ export default function Listas() {
           htmlEl.style.display = 'none !important';
         }
       });
+      
+      // Restaurar alinhamento do rodapé (direita)
+      rodapeDiv.style.textAlign = 'right';
       
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
