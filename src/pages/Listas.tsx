@@ -508,153 +508,205 @@ export default function Listas() {
   };
 
   const gerarPDF = async () => {
-    // Determinar qual ref usar baseado na tela ativa
     const activeRef = tela === 'gerenciar' ? previewRefGerenciar : previewRefEditor;
     if (!activeRef.current) return;
     
     try {
       const element = activeRef.current;
       
-      // Aplicar altura de linha fixa de 4mm
-      const styleHeight = document.createElement('style');
-      styleHeight.innerHTML = `
-        #pdf-preview table { break-inside: avoid; page-break-inside: avoid; }
-        #pdf-preview tbody tr { break-inside: avoid; page-break-inside: avoid; height: 4mm !important; }
-        #pdf-preview thead tr { break-inside: avoid; page-break-inside: avoid; }
-        #pdf-preview td, #pdf-preview th { vertical-align: middle; padding: 2px !important; line-height: 1 !important; }
-        #pdf-preview .lista-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 2mm; }
-        #pdf-preview { margin: 0; padding: 4mm; }
-      `;
-      document.head.appendChild(styleHeight);
+      // Análise inteligente: contar linhas totais e calcular altura ótima
+      const totalRows = element.querySelectorAll('tbody tr').length;
+      const totalSections = element.querySelectorAll('.lista-section').length;
       
-      // Criar wrapper temporário com ID para aplicar estilos
+      // Calcular altura dinâmica: A4 = 297mm - 2*2mm margem = 293mm
+      // Cabeçalho + título = ~15mm, espaço útil = ~278mm
+      // Com 15-20 linhas por página = 13-18mm por seção + dados
+      const dynamicRowHeight = Math.max(3, Math.min(5, 278 / Math.max(1, totalRows / 3)));
+      
+      // Criar estilo otimizado
+      const styleOptimized = document.createElement('style');
+      styleOptimized.innerHTML = `
+        #pdf-gen { 
+          width: 210mm; 
+          margin: 0; 
+          padding: 2mm;
+          font-size: 9px;
+          line-height: 1.1;
+        }
+        #pdf-gen table { 
+          width: 100%; 
+          border-collapse: collapse;
+          page-break-inside: avoid;
+          margin-bottom: 1mm;
+        }
+        #pdf-gen thead {
+          page-break-inside: avoid;
+          page-break-after: avoid;
+        }
+        #pdf-gen tbody tr { 
+          height: ${dynamicRowHeight}mm !important;
+          page-break-inside: avoid;
+          page-break-after: avoid;
+        }
+        #pdf-gen td, #pdf-gen th { 
+          padding: 0.5mm !important;
+          margin: 0 !important;
+          vertical-align: middle;
+          border: 1px solid #000;
+          line-height: 1 !important;
+        }
+        #pdf-gen th {
+          padding: 1mm 0.5mm !important;
+          background: #ddd;
+          font-weight: bold;
+        }
+        #pdf-gen .lista-section { 
+          page-break-inside: avoid;
+          margin: 0mm 0 1mm 0;
+          padding: 0;
+        }
+        #pdf-gen h5 {
+          margin: 0 0 1mm 0;
+          padding: 1mm 0;
+          font-size: 10px;
+          font-weight: bold;
+          line-height: 1;
+        }
+      `;
+      document.head.appendChild(styleOptimized);
+      
+      // Criar wrapper com conteúdo otimizado
       const wrapper = document.createElement('div');
-      wrapper.id = 'pdf-preview';
-      wrapper.style.width = '210mm'; // A4 width
+      wrapper.id = 'pdf-gen';
       wrapper.innerHTML = element.innerHTML;
       document.body.appendChild(wrapper);
       
-      try {
-        const canvas = await html2canvas(wrapper, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          windowWidth: 1240, // A4 em pixels com resolução de 96dpi
-          logging: false,
-          allowTaint: true,
-          imageTimeout: 0,
-        });
-        
-        // Usar JPEG para melhor compressão
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
-        
-        const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
-        const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
-        const margins = 4; // 4mm de margem
-        const imgWidth = pageWidth - (margins * 2); // 202mm
-        
-        // Calcula altura proporcional da imagem
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const contentHeightPerPage = pageHeight - (margins * 2); // Espaço disponível por página
-        
-        // Estratégia otimizada: quebrar apenas no final de seções (lista-section)
-        const breakPoints: number[] = [];
-        
-        // Encontrar o final de cada seção e cada tabela
-        const sections = wrapper.querySelectorAll('.lista-section');
-        sections.forEach((section, idx) => {
-          const rect = section.getBoundingClientRect();
-          const sectionTop = rect.top - wrapper.getBoundingClientRect().top;
-          const sectionBottom = rect.bottom - wrapper.getBoundingClientRect().top;
-          
-          // Converter para altura proporcional no PDF
-          const sectionBottomInPDF = (sectionBottom * imgHeight) / wrapper.clientHeight;
-          if (sectionBottomInPDF < imgHeight && sectionBottomInPDF > 0) {
-            breakPoints.push(sectionBottomInPDF);
-          }
-        });
-        
-        // Adicionar fim de primeira página se não houver seções
-        if (breakPoints.length === 0) {
-          breakPoints.push(contentHeightPerPage);
-        }
-        
-        // Remover duplicatas e ordenar
-        const uniqueBreakPoints = [...new Set(breakPoints.map(p => Math.round(p)))].sort((a, b) => a - b);
-        
-        // Função para encontrar o melhor ponto de quebra
-        const findBestBreakPoint = (currentY: number, maxY: number): number => {
-          // Encontrar o próximo ponto de quebra que cabe no espaço disponível
-          for (const breakPoint of uniqueBreakPoints) {
-            if (breakPoint > currentY && breakPoint <= currentY + contentHeightPerPage) {
-              return breakPoint;
-            }
-          }
-          
-          // Se nenhum ponto de quebra encontrado, usar o espaço disponível
-          return Math.min(currentY + contentHeightPerPage, maxY);
-        };
-        
-        // Gerar PDF com quebras otimizadas
-        let currentY = 0;
-        let pageNum = 0;
-        
-        while (currentY < imgHeight) {
-          const nextBreak = findBestBreakPoint(currentY, imgHeight);
-          const heightToCopy = nextBreak - currentY;
-          
-          // Criar canvas temporário com a altura exata
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = canvas.width;
-          tempCanvas.height = Math.ceil((heightToCopy / imgHeight) * canvas.height);
-          
-          const ctx = tempCanvas.getContext('2d');
-          if (ctx) {
-            const sourceY = Math.round((currentY / imgHeight) * canvas.height);
-            ctx.drawImage(
-              canvas,
-              0,
-              sourceY,
-              canvas.width,
-              Math.ceil((heightToCopy / imgHeight) * canvas.height),
-              0,
-              0,
-              canvas.width,
-              Math.ceil((heightToCopy / imgHeight) * canvas.height)
-            );
-          }
-          
-          const pageImgData = tempCanvas.toDataURL('image/jpeg', 0.95);
-          
-          if (pageNum === 0) {
-            // Primeira página
-            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
-          } else {
-            // Páginas subsequentes
-            pdf.addPage();
-            pdf.addImage(pageImgData, 'JPEG', margins, margins, imgWidth, heightToCopy);
-          }
-          
-          currentY = nextBreak;
-          pageNum++;
-          
-          // Segurança: evitar loop infinito
-          if (pageNum > 200) break;
-        }
-        
-        pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
-      } finally {
-        // Limpar elementos temporários
-        document.head.removeChild(styleHeight);
-        document.body.removeChild(wrapper);
+      const canvas = await html2canvas(wrapper, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 1240,
+        logging: false,
+        allowTaint: true,
+        imageTimeout: 0,
+      });
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
+      
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 2;
+      const contentWidth = pageWidth - (margin * 2);
+      const contentHeight = pageHeight - (margin * 2);
+      
+      // Calcular altura total da imagem
+      const imgHeight = (canvas.height * contentWidth) / canvas.width;
+      
+      // Estratégia: quebrar de forma inteligente maximizando conteúdo por página
+      interface PageBreak {
+        y: number;
+        type: 'section' | 'forced';
       }
+      
+      const pageBreaks: PageBreak[] = [];
+      
+      // Encontrar quebras naturais (fim de seções)
+      const sections = wrapper.querySelectorAll('.lista-section');
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const sectionEndRelative = rect.bottom - wrapperRect.top;
+        const sectionEndInPDF = (sectionEndRelative * imgHeight) / wrapper.clientHeight;
+        
+        if (sectionEndInPDF <= imgHeight && sectionEndInPDF > 0) {
+          pageBreaks.push({ y: sectionEndInPDF, type: 'section' });
+        }
+      });
+      
+      // Remover duplicatas e ordenar
+      const uniqueBreaks = Array.from(new Map(pageBreaks.map(bp => [Math.round(bp.y), bp])).values())
+        .sort((a, b) => a.y - b.y);
+      
+      // Algoritmo inteligente: preencher páginas maximizando conteúdo
+      let currentPageY = 0;
+      let pageNum = 0;
+      const pagesData: Array<{ startY: number; endY: number }> = [];
+      
+      for (const breakPoint of uniqueBreaks) {
+        const breakY = breakPoint.y;
+        const availableSpace = currentPageY + contentHeight;
+        
+        if (breakY <= availableSpace) {
+          // Cabe nesta página
+          continue;
+        } else {
+          // Precisar de nova página
+          pagesData.push({ startY: currentPageY, endY: breakY - 1 });
+          currentPageY = breakY;
+        }
+      }
+      
+      // Última página
+      if (currentPageY < imgHeight) {
+        pagesData.push({ startY: currentPageY, endY: imgHeight });
+      }
+      
+      // Se não houver páginas definidas, criar uma
+      if (pagesData.length === 0) {
+        pagesData.push({ startY: 0, endY: Math.min(contentHeight, imgHeight) });
+      }
+      
+      // Renderizar páginas
+      for (let i = 0; i < pagesData.length; i++) {
+        const page = pagesData[i];
+        const pageHeight = Math.min(page.endY - page.startY, contentHeight);
+        
+        // Criar canvas para esta página
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.ceil((pageHeight / imgHeight) * canvas.height);
+        
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          const sourceY = Math.round((page.startY / imgHeight) * canvas.height);
+          ctx.drawImage(
+            canvas,
+            0,
+            sourceY,
+            canvas.width,
+            Math.ceil((pageHeight / imgHeight) * canvas.height),
+            0,
+            0,
+            canvas.width,
+            Math.ceil((pageHeight / imgHeight) * canvas.height)
+          );
+        }
+        
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.93);
+        
+        if (i === 0) {
+          pdf.addImage(pageImgData, 'JPEG', margin, margin, contentWidth, pageHeight);
+        } else {
+          pdf.addPage();
+          pdf.addImage(pageImgData, 'JPEG', margin, margin, contentWidth, pageHeight);
+        }
+      }
+      
+      pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
+      
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
+    } finally {
+      // Limpar
+      const styleElem = document.querySelector('style:last-of-type');
+      if (styleElem?.id === '') document.head.removeChild(styleElem);
+      const wrapper = document.getElementById('pdf-gen');
+      if (wrapper) document.body.removeChild(wrapper);
     }
   };
 
