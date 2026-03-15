@@ -514,25 +514,51 @@ export default function Listas() {
     try {
       const element = activeRef.current;
       
-      // Clonar elemento para não afetar a tela
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.id = 'pdf-container';
-      clone.style.width = '210mm';
-      clone.style.margin = '0';
-      clone.style.padding = '5mm';
-      clone.style.backgroundColor = 'white';
+      // Criar um wrapper temporário com cópia completa do elemento
+      const wrapper = document.createElement('div');
+      wrapper.id = 'pdf-wrapper';
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-9999px';
+      wrapper.style.width = '210mm';
+      wrapper.style.margin = '0';
+      wrapper.style.padding = '5mm';
+      wrapper.style.backgroundColor = 'white';
+      wrapper.style.color = '#000';
+      wrapper.style.fontFamily = getFontFamilyStyle();
       
-      // Ocultar elementos desnecessários
-      clone.querySelectorAll('input[type="checkbox"], button, .flex').forEach(el => {
-        (el as HTMLElement).style.display = 'none';
+      // Clonar o elemento original e colocar no wrapper
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Copiar estilos computados para garantir que apareçam
+      const allElements = clone.querySelectorAll('*');
+      allElements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const computed = window.getComputedStyle(htmlEl);
+        
+        // Copiar estilos importantes
+        htmlEl.style.color = computed.color;
+        htmlEl.style.fontSize = computed.fontSize;
+        htmlEl.style.fontWeight = computed.fontWeight;
+        htmlEl.style.backgroundColor = computed.backgroundColor;
+        htmlEl.style.borderColor = computed.borderColor;
+        htmlEl.style.borderWidth = computed.borderWidth;
+        htmlEl.style.borderStyle = computed.borderStyle;
+        
+        // Ocultar controles interativos
+        if (htmlEl.tagName === 'INPUT' || htmlEl.tagName === 'BUTTON' || htmlEl.classList.contains('flex')) {
+          htmlEl.style.display = 'none';
+        }
       });
       
-      // Adicionar ao DOM temporariamente
-      document.body.appendChild(clone);
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
       
-      // Renderizar com html2canvas - simples e direto
-      const canvas = await html2canvas(clone, {
-        scale: 1.5, // escala moderada para qualidade
+      // Aguardar um pouco para o DOM atualizar
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Renderizar com html2canvas
+      const canvas = await html2canvas(wrapper, {
+        scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         windowWidth: 1000,
@@ -553,11 +579,10 @@ export default function Listas() {
       const margin = 10;
       const availableWidth = pageWidth - (margin * 2);
       
-      // Calcular escala para caber na página
+      // Calcular escala
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       const ratio = availableWidth / imgWidth;
-      const scaledHeight = imgHeight * ratio;
       
       // Quebrar em páginas
       let yOffset = 0;
@@ -568,11 +593,10 @@ export default function Listas() {
           pdf.addPage();
         }
         
-        // Altura disponível na página atual
         const availableHeight = (pageHeight - (margin * 2)) / ratio;
         const heightToCopy = Math.min(availableHeight, imgHeight - yOffset);
         
-        // Criar canvas temporário com apenas a seção a ser copiada
+        // Criar canvas temporário
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = imgWidth;
         tempCanvas.height = Math.ceil(heightToCopy);
@@ -605,9 +629,9 @@ export default function Listas() {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF: ' + error);
     } finally {
-      const container = document.getElementById('pdf-container');
-      if (container) {
-        document.body.removeChild(container);
+      const wrapper = document.getElementById('pdf-wrapper');
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
       }
     }
   };
