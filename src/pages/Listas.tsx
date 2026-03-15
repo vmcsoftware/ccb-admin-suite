@@ -514,48 +514,48 @@ export default function Listas() {
     try {
       const element = activeRef.current;
       
-      // Estilo PROFISSIONAL E LEGÍVEL para PDF
+      // Estilo para PDF - CORRIGIDO com espaçamento adequado
       const stylePDF = document.createElement('style');
       stylePDF.innerHTML = `
         #pdf-export {
           width: 210mm;
           margin: 0;
-          padding: 5mm;
+          padding: 8mm;
           font-family: ${getFontFamilyStyle()};
           background: white;
+          line-height: 1.4;
         }
         
         #pdf-export .lista-section {
-          margin-bottom: 4mm;
+          margin-bottom: 6mm;
           page-break-inside: avoid;
         }
         
         #pdf-export h3, #pdf-export h4 {
-          margin: 0 0 2mm 0;
-          font-size: 11pt;
+          margin: 3mm 0 2mm 0;
+          font-size: 12pt;
           font-weight: bold;
-          line-height: 1.2;
+          line-height: 1.3;
         }
         
         #pdf-export h5 {
-          margin: 1mm 0;
-          font-size: 10pt;
+          margin: 2mm 0 1mm 0;
+          font-size: 11pt;
           font-weight: bold;
           border-bottom: 2px solid #000;
-          padding-bottom: 1mm;
+          padding-bottom: 1.5mm;
+          line-height: 1.2;
         }
         
-        #pdf-export p, #pdf-export div {
+        #pdf-export div {
           margin: 0;
           padding: 0;
-          font-size: 11pt;
-          line-height: 1.3;
         }
         
         #pdf-export table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 2mm;
+          margin: 2mm 0 3mm 0;
           page-break-inside: avoid;
         }
         
@@ -564,60 +564,59 @@ export default function Listas() {
         }
         
         #pdf-export th {
-          background-color: #ccc;
+          background-color: #d3d3d3;
           border: 1px solid #000;
-          padding: 2mm;
+          padding: 3mm 2mm;
           font-weight: bold;
           font-size: 10pt;
           text-align: left;
           line-height: 1.3;
+          height: auto;
+          vertical-align: middle;
+          word-wrap: break-word;
         }
         
         #pdf-export td {
           border: 1px solid #000;
-          padding: 2mm;
-          font-size: 10pt;
-          line-height: 1.3;
+          padding: 3.5mm 2mm;
+          font-size: 9.5pt;
+          line-height: 1.4;
           vertical-align: middle;
-          page-break-inside: avoid;
+          height: auto;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         
         #pdf-export tbody tr {
           page-break-inside: avoid;
         }
         
-        #pdf-export input[type="checkbox"] {
-          display: none;
-        }
-        
-        /* Ocultar controles de UI */
-        #pdf-export .flex,
+        #pdf-export input[type="checkbox"],
         #pdf-export button,
-        #pdf-export textarea {
+        #pdf-export .flex {
           display: none !important;
         }
       `;
       document.head.appendChild(stylePDF);
       
-      // Criar container para PDF com conteúdo limpo
+      // Criar container para PDF
       const container = document.createElement('div');
       container.id = 'pdf-export';
       container.innerHTML = element.innerHTML;
       document.body.appendChild(container);
       
-      // Renderizar com qualidade alta
+      // Renderizar canvas
       const canvas = await html2canvas(container, {
-        scale: 3, // Escala 3x para máxima clareza
+        scale: 2.5,
         useCORS: true,
         backgroundColor: '#ffffff',
-        windowWidth: 1240, // Largura A4
+        windowWidth: 1200,
         logging: false,
         allowTaint: true,
         imageTimeout: 0,
         foreignObjectRendering: true,
       });
       
-      // Criar PDF A4
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -627,61 +626,60 @@ export default function Listas() {
       
       const pageWidth = 210;
       const pageHeight = 297;
-      const margin = 3;
-      const pdfContentWidth = pageWidth - (margin * 2);
-      const pdfContentHeight = pageHeight - (margin * 2);
+      const margin = 5;
+      const pdfWidth = pageWidth - (margin * 2);
+      const pdfHeight = pageHeight - (margin * 2);
       
-      // Calcular proporções
-      const imgWidth = (canvas.width / 96) * 25.4; // Converter pixels para mm
+      // Cálculo de proporções
+      const imgWidth = (canvas.width / 96) * 25.4;
       const imgHeight = (canvas.height / 96) * 25.4;
-      const scale = pdfContentWidth / imgWidth;
-      const scaledHeight = imgHeight * scale;
+      const ratio = pdfWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
       
-      // Quebrar em páginas respeitando o layout
-      let yPosition = 0;
-      let pageCounter = 0;
+      // Quebra de páginas inteligente
+      let currentY = 0;
+      let pageNum = 0;
       
-      while (yPosition < imgHeight) {
-        if (pageCounter > 0) {
+      while (currentY < imgHeight) {
+        if (pageNum > 0) {
           pdf.addPage();
         }
         
-        const remainingHeight = imgHeight - yPosition;
-        const heightOnPage = Math.min(remainingHeight, pdfContentHeight / scale);
+        const remainingHeight = imgHeight - currentY;
+        const pageHeightContent = Math.min(remainingHeight, pdfHeight / ratio);
         
-        // Criar slice do canvas
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = (heightOnPage / imgHeight) * canvas.height;
+        // Slice do canvas
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = Math.ceil((pageHeightContent / imgHeight) * canvas.height);
         
-        const ctx = tempCanvas.getContext('2d');
+        const ctx = sliceCanvas.getContext('2d');
         if (ctx) {
-          const sourceY = (yPosition / imgHeight) * canvas.height;
+          const sourceY = Math.round((currentY / imgHeight) * canvas.height);
           ctx.drawImage(
             canvas,
             0, sourceY,
-            canvas.width, tempCanvas.height,
+            canvas.width, sliceCanvas.height,
             0, 0,
-            canvas.width, tempCanvas.height
+            canvas.width, sliceCanvas.height
           );
         }
         
-        const imgData = tempCanvas.toDataURL('image/jpeg', 0.98);
-        pdf.addImage(imgData, 'JPEG', margin, margin, pdfContentWidth, heightOnPage);
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', margin, margin, pdfWidth, pageHeightContent);
         
-        yPosition += heightOnPage;
-        pageCounter++;
+        currentY += pageHeightContent;
+        pageNum++;
         
-        if (pageCounter > 500) break; // Proteção contra loop infinito
+        if (pageNum > 300) break;
       }
       
       pdf.save(`lista-ccb-${new Date().toISOString().slice(0, 10)}.pdf`);
       
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Erro ao gerar PDF. Tente novamente.');
+      alert('Erro ao gerar PDF: ' + error);
     } finally {
-      // Limpar elementos temporários
       const styleElement = document.querySelector('style:last-of-type');
       if (styleElement && styleElement.innerHTML.includes('pdf-export')) {
         document.head.removeChild(styleElement);
